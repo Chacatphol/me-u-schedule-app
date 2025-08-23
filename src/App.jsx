@@ -171,7 +171,7 @@ function getUrgencyStyle(dueAt) {
   if (hoursLeft <= 24) { // Urgent, less than 24 hours
     return { gradientClass: 'bg-gradient-to-b from-orange-500 to-amber-400', textColorClass: 'text-orange-500 dark:text-orange-400', showFire: false };
   }
-  if (hoursLeft <= 72) { // Upcoming, less than 3 days
+  if (hoursLeft <= 168) { // Upcoming, less than 7 days
     return { gradientClass: 'bg-gradient-to-b from-amber-400 to-yellow-300', textColorClass: 'text-amber-500 dark:text-amber-400', showFire: false };
   }
   // Not urgent
