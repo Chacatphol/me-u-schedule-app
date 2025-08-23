@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay } from "date-fns";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User } from "lucide-react";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { db, auth } from "./firebase"; // Import auth
+
 
 // --- Simple in-file UI kit using Tailwind + a few tiny helpers ---
 const Button = ({ as:Comp = 'button', className = '', ...props }) => (
@@ -32,7 +36,19 @@ const initialState = {
 
 function reducer(state, action){
   switch(action.type){
-    case 'load': return action.payload
+    case 'load': {
+      const loaded = action.payload;
+      // Ensure loaded is an object and not null, otherwise reset to initial state
+      if (typeof loaded !== 'object' || loaded === null) {
+        return initialState;
+      }
+      return {
+        ...initialState,
+        subjects: Array.isArray(loaded.subjects) ? loaded.subjects.filter(s => s && typeof s === 'object') : [],
+        tasks: Array.isArray(loaded.tasks) ? loaded.tasks.filter(t => t && typeof t === 'object') : [],
+        theme: loaded.theme || 'auto',
+      };
+    }
     case 'addSubject': return { ...state, subjects:[...state.subjects, action.payload] }
     case 'updateSubject': return { ...state, subjects: state.subjects.map(s=>s.id===action.payload.id? {...s,...action.payload}:s) }
     case 'deleteSubject': return { ...state, subjects: state.subjects.filter(s=>s.id!==action.id), tasks: state.tasks.filter(t=>t.subjectId!==action.id) }
@@ -47,17 +63,52 @@ function reducer(state, action){
 
 // --- Helpers ---
 const uid = () => Math.random().toString(36).slice(2,9)
-const saveKey = 'meu-schedule-v1'
-function usePersistentState(){
-  const [state, dispatch] = useReducer(reducer, initialState)
-  useEffect(()=>{
-    const raw = localStorage.getItem(saveKey)
-    if(raw){
-      try{ dispatch({type:'load', payload: JSON.parse(raw)}) }catch{}
+
+// --- Data layer (Firebase) with Auth ---
+function usePersistentState(userId){
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Load data from Firestore when userId changes
+  useEffect(() => {
+    if (!userId) {
+      dispatch({ type: 'reset' }); // Reset state if no user is logged in
+      return;
     }
-  },[])
-  useEffect(()=>{ localStorage.setItem(saveKey, JSON.stringify(state)) },[state])
-  return [state, dispatch]
+    const docRef = doc(db, "schedules", userId);
+
+    // Use onSnapshot for real-time updates
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        dispatch({ type: 'load', payload: docSnap.data() });
+      } else {
+        console.log("User document not found, will create a new one on first save.");
+        dispatch({ type: 'reset' }); // Start with a clean slate
+      }
+    }, (error) => {
+      console.error("Error listening to document:", error);
+    });
+
+    // Cleanup function when component unmounts or userId changes
+    return () => unsubscribe();
+  }, [userId]);
+
+  // Save data to Firestore whenever state changes
+  useEffect(() => {
+    // Prevent writing initial empty state or if user is not logged in
+    if (!userId || state === initialState) {
+      return;
+    }
+    const docRef = doc(db, "schedules", userId);
+    setDoc(docRef, state, { merge: true })
+      .then(() => {
+        // Optional: console.log("Document successfully written!");
+      }).catch(error => {
+        console.error("Error writing document: ", error);
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองอีกครั้ง");
+      });
+  }, [state, userId]);
+
+  return [state, dispatch];
 }
 
 function scheduleReminder(task){
@@ -101,11 +152,22 @@ function priorityBadge(p){
 
 // --- Main App ---
 export default function App(){
-  const [state, dispatch] = usePersistentState()
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [state, dispatch] = usePersistentState(user?.uid);
   const [view, setView] = useState('dashboard') // dashboard | subjects | calendar | settings
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [query, setQuery] = useState('')
   const [nowTick, setNowTick] = useState(0)
+
+  // Listen to auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoadingAuth(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // tick every 30s for countdown labels
   useEffect(()=>{ const t = setInterval(()=> setNowTick(x=>x+1), 30000); return ()=>clearInterval(t) },[])
@@ -163,10 +225,18 @@ export default function App(){
   // schedule reminders for tasks when added/updated
   useEffect(()=>{ tasks.forEach(scheduleReminder) }, [tasks])
 
+  if (loadingAuth) {
+    return <div className="h-screen flex items-center justify-center">กำลังโหลด...</div>;
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100">
       <div className="max-w-6xl mx-auto p-4 md:p-6">
-        <Header state={state} dispatch={dispatch} view={view} setView={setView} />
+        <Header user={user} state={state} dispatch={dispatch} view={view} setView={setView} />
 
         {view==='dashboard' && (
           <Dashboard
@@ -189,7 +259,7 @@ export default function App(){
         )}
 
         {view==='settings' && (
-          <Settings state={state} dispatch={dispatch} />
+          <Settings state={state} dispatch={dispatch} userId={user?.uid} />
         )}
 
       </div>
@@ -197,9 +267,9 @@ export default function App(){
   )
 }
 
-function Header({state, dispatch, view, setView}){
+function Header({user, state, dispatch, view, setView}){
   return (
-    <div className="flex items-center justify-between mb-4 md:mb-6">
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
       <div className="flex items-center gap-3">
         <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow">
           <Sparkles className="h-5 w-5" />
@@ -209,11 +279,25 @@ function Header({state, dispatch, view, setView}){
           <div className="text-xs text-slate-500 dark:text-slate-400">บันทึกตารางงานแบบน่ารัก แต่จริงจัง</div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <GhostButton onClick={()=>setView('dashboard')} className={view==='dashboard'? 'bg-slate-50 dark:bg-slate-800' : ''}><LayoutGrid className="h-4 w-4"/>Dashboard</GhostButton>
-        <GhostButton onClick={()=>setView('subjects')} className={view==='subjects'? 'bg-slate-50 dark:bg-slate-800' : ''}><Folder className="h-4 w-4"/>รายวิชา</GhostButton>
-        <GhostButton onClick={()=>setView('calendar')} className={view==='calendar'? 'bg-slate-50 dark:bg-slate-800' : ''}><CalendarIcon className="h-4 w-4"/>ปฏิทิน</GhostButton>
-        <GhostButton onClick={()=>setView('settings')} className={view==='settings'? 'bg-slate-50 dark:bg-slate-800' : ''}><Layers className="h-4 w-4"/>ตั้งค่า</GhostButton>
+      <div className="flex items-center gap-2 w-full flex-wrap justify-between md:w-auto">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <GhostButton onClick={()=>setView('dashboard')} className={view==='dashboard'? 'bg-slate-50 dark:bg-slate-800' : ''}><LayoutGrid className="h-4 w-4"/><span className="hidden sm:inline">Dashboard</span></GhostButton>
+          <GhostButton onClick={()=>setView('subjects')} className={view==='subjects'? 'bg-slate-50 dark:bg-slate-800' : ''}><Folder className="h-4 w-4"/><span className="hidden sm:inline">รายวิชา</span></GhostButton>
+          <GhostButton onClick={()=>setView('calendar')} className={view==='calendar'? 'bg-slate-50 dark:bg-slate-800' : ''}><CalendarIcon className="h-4 w-4"/><span className="hidden sm:inline">ปฏิทิน</span></GhostButton>
+          <GhostButton onClick={()=>setView('settings')} className={view==='settings'? 'bg-slate-50 dark:bg-slate-800' : ''}><Layers className="h-4 w-4"/><span className="hidden sm:inline">ตั้งค่า</span></GhostButton>
+        </div>
+        <div className="flex items-center gap-2 text-sm ml-auto md:ml-0">
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></div>
+          {user.photoURL ? (
+            <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <User className="h-4 w-4 text-slate-500" />
+            </div>
+          )}
+          <span className="hidden md:inline">{user.displayName || user.email}</span>
+          <GhostButton onClick={()=>signOut(auth)}><LogOut className="h-4 w-4"/></GhostButton>
+        </div>
       </div>
     </div>
   )
@@ -244,7 +328,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
       <Card>
         <SectionTitle><BarChart3 className="h-4 w-4"/> ภาพรวมวันนี้</SectionTitle>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="w-24 h-24 rounded-full border-8 border-slate-200 dark:border-slate-800 flex items-center justify-center text-xl font-bold">
             {progressToday}%
           </div>
@@ -255,7 +339,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
         </div>
         <div className="mt-3 text-xs text-slate-500">Tip: ทำงานด่วนให้เสร็จก่อน แล้วค่อยเก็บงานย่อย 🧠</div>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
           <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
         </div>
@@ -434,7 +518,7 @@ function AddTaskButton({subjects, onAdd}){
 function TaskItem({task, onUpdate, onDelete}){
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
-  useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''}), [task.id])
+  useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''}), [task])
 
   const save = ()=>{
     const payload = {...form, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null}
@@ -579,16 +663,19 @@ function CalendarView({tasks, subjects, setView}){
           </div>
         </div>
       </Card>
-      <div className="grid grid-cols-7 gap-2">
-        {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d} className="text-xs text-slate-500 text-center">{d}</div>))}
+      <div className="overflow-x-auto pb-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2 min-w-[21rem]">
+          {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d}>{d}</div>))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 min-w-[21rem]">
         {days.map(d=>{
           const key = format(d,'yyyy-MM-dd')
           const items = byDay[key]||[]
           return (
-            <div key={key} className={`min-h-24 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'}`}>
+            <div key={key} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'}`}>
               <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
               <div className="space-y-1">
-                {items.slice(0,3).map(t=> (
+                {items.slice(0,2).map(t=> (
                   <div key={t.id} className="text-[11px] px-2 py-1 rounded-lg border truncate" style={{borderColor: t.subjectColor||'#e2e8f0'}}>
                     {t.title}
                   </div>
@@ -598,12 +685,13 @@ function CalendarView({tasks, subjects, setView}){
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )
 }
 
-function Settings({state, dispatch}){
+function Settings({state, dispatch, userId}){
   const fileRef = useRef(null)
 
   const exportData = ()=>{
@@ -621,16 +709,39 @@ function Settings({state, dispatch}){
     if(!file) return
     const reader = new FileReader()
     reader.onload = (ev)=>{
-      try{ const data = JSON.parse(ev.target.result); localStorage.setItem(saveKey, JSON.stringify(data)); location.reload() }catch{ alert('ไฟล์ไม่ถูกต้อง') }
+      try{
+        const data = JSON.parse(ev.target.result);
+        dispatch({type: 'load', payload: data});
+        alert('นำเข้าข้อมูลสำเร็จ!');
+      }catch{
+        alert('ไฟล์ไม่ถูกต้อง');
+      }
     }
     reader.readAsText(file)
   }
+
+  const handleClearData = () => {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+      if (!userId) return;
+      const docRef = doc(db, "schedules", userId);
+      // เขียนทับข้อมูลบน Firebase ด้วย state เริ่มต้น (ว่างเปล่า)
+      setDoc(docRef, initialState)
+        .then(() => {
+          alert('ล้างข้อมูลสำเร็จแล้ว!');
+          // onSnapshot จะอัปเดตหน้าจอให้โดยอัตโนมัติ
+        })
+        .catch(error => {
+          console.error("Error clearing document: ", error);
+          alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+        });
+    }
+  };
 
   return (
     <div className="grid md:grid-cols-2 gap-4">
       <Card>
         <SectionTitle>ธีม</SectionTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'auto'})} className={state.theme==='auto'? 'bg-slate-50 dark:bg-slate-800':''}><RefreshCw className="h-4 w-4"/> อัตโนมัติ</GhostButton>
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'light'})} className={state.theme==='light'? 'bg-slate-50 dark:bg-slate-800':''}><Sun className="h-4 w-4"/> สว่าง</GhostButton>
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'dark'})} className={state.theme==='dark'? 'bg-slate-50 dark:bg-slate-800':''}><Moon className="h-4 w-4"/> มืด</GhostButton>
@@ -639,28 +750,49 @@ function Settings({state, dispatch}){
 
       <Card>
         <SectionTitle>สำรอง/กู้คืน</SectionTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={exportData}><Download className="h-4 w-4"/> ส่งออก JSON</Button>
           <GhostButton onClick={()=>fileRef.current?.click()}><Upload className="h-4 w-4"/> นำเข้า JSON</GhostButton>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importData} />
         </div>
-        <div className="mt-3 text-xs text-slate-500">ข้อมูลเก็บในเครื่อง (localStorage) • ใช้คนเดียวง่ายๆ ไม่ต้องล็อกอิน</div>
+        <div className="mt-3 text-xs text-slate-500">ข้อมูลจะถูกบันทึกออนไลน์อัตโนมัติ</div>
       </Card>
 
       <Card className="md:col-span-2">
         <SectionTitle>ล้างข้อมูลทั้งหมด</SectionTitle>
-        <Button className="bg-rose-600" onClick={()=>{ if(confirm('ล้างข้อมูลทั้งหมด?')) { localStorage.removeItem(saveKey); location.reload() } }}>ล้างข้อมูล</Button>
+        <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleClearData}>ล้างข้อมูล</Button>
       </Card>
     </div>
   )
 }
 
+function LoginScreen() {
+  const handleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error signing in with Google", error);
+      alert("เกิดข้อผิดพลาดในการล็อกอิน: " + error.message);
+    }
+  };
+
+  return (
+    <div className="h-screen flex flex-col items-center justify-center gap-4">
+      <h1 className="text-2xl font-bold">ยินดีต้อนรับสู่ ME-U Schedule</h1>
+      <Button onClick={handleSignIn}><User className="h-4 w-4" /> เข้าสู่ระบบด้วย Google</Button>
+    </div>
+  );
+}
+
 function Modal({children, onClose}){
   useEffect(()=>{
     const onKey = (e)=>{ if(e.key==='Escape') onClose() }
+
     window.addEventListener('keydown', onKey)
     return ()=> window.removeEventListener('keydown', onKey)
-  },[])
+  },[onClose])
+
   return (
     <AnimatePresence>
       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
