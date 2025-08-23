@@ -747,9 +747,8 @@ function CalendarView({tasks, subjects, setView}){
             const key = format(d,'yyyy-MM-dd')
             const items = byDay[key]||[]
             return (
-              // ทำให้แต่ละวันสามารถกดได้ เพื่อเปิด Modal
-              <div key={key} onClick={() => setSelectedDate(d)}
-                   className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
+              // ส่วนของ Cell ในแต่ละวัน
+              <div key={key} onClick={() => setSelectedDate(d)} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
                 <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
                 <div className="space-y-1">
                   {items.slice(0,2).map(t=> (
@@ -765,6 +764,12 @@ function CalendarView({tasks, subjects, setView}){
           </div>
         </div>
       </Card>
+      {/* ย้าย AnimatePresence มาไว้ตรงนี้ เพื่อให้ Modal แสดงผลครอบคลุมทั้งหน้าจอ */}
+      <AnimatePresence>
+        {selectedDate && (
+          <TaskModal date={selectedDate} tasks={tasks} onClose={() => setSelectedDate(null)} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
