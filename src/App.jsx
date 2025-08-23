@@ -10,12 +10,12 @@ import { db, auth } from "./firebase"; // Import auth
 
 // --- Simple in-file UI kit using Tailwind + a few tiny helpers ---
 const Button = ({ as:Comp = 'button', className = '', ...props }) => (
-  <Comp className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-slate-900 text-white dark:bg-white dark:text-slate-900 ${className}`} {...props} />
+  <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-slate-900 text-white dark:bg-white dark:text-slate-900 whitespace-nowrap ${className}`} {...props} />
 );
 const GhostButton = ({ as:Comp = 'button', className = '', ...props }) => (
-  <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm transition-colors active:scale-[0.98] border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 ${className}`} {...props} />
+  <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm transition-colors active:scale-[0.98] border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 whitespace-nowrap ${className}`} {...props} />
 );
-const Input = (props) => <input {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
+const Input = (props) => <input {...props} className={`rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Textarea = (props) => <textarea {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Select = (props) => <select {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Card = ({ className='', ...props }) => <div className={`rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl p-4 ${className}`} {...props} />
@@ -403,10 +403,10 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
           {state.subjects.length===0 && <div className="text-xs text-slate-500">ยังไม่มีรายวิชา กดเพิ่มด้านล่างได้เลย</div>}
         </div>
         <div className="space-y-2">
-          <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} />
+          <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} className="w-full" />
           <div className="flex items-center gap-2">
             <Input type="color" defaultValue="#6366f1" ref={colorRef} className="w-16 h-10 p-1" />
-            <Button onClick={addSubject}><Plus className="h-4 w-4"/> เพิ่มรายวิชา</Button>
+            <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4"/> เพิ่มรายวิชา</Button>
           </div>
         </div>
       </Card>
@@ -416,7 +416,7 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <SectionTitle><ListTodo className="h-4 w-4"/> งานทั้งหมด {selectedSubject? `ของวิชา: ${state.subjects.find(s=>s.id===selectedSubject)?.name}`: ''}</SectionTitle>
             <div className="flex items-center gap-2">
-              <Input placeholder="ค้นหางาน..." value={query} onChange={e=>setQuery(e.target.value)} className="md:w-64" />
+              <Input placeholder="ค้นหางาน..." value={query} onChange={e=>setQuery(e.target.value)} className="flex-1 md:w-auto md:w-64" />
               <AddTaskButton subjects={state.subjects} onAdd={(payload)=> dispatch({type:'addTask', payload})} />
             </div>
           </div>
@@ -473,7 +473,7 @@ function AddTaskButton({subjects, onAdd}){
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">ชื่องาน</label>
-                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="เช่น Assignment บทที่ 3" />
+                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="เช่น Assignment บทที่ 3" className="w-full" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">รายละเอียด</label>
@@ -481,11 +481,11 @@ function AddTaskButton({subjects, onAdd}){
               </div>
               <div>
                 <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
-                <Input type="datetime-local" value={form.dueAt} onChange={e=>setForm({...form, dueAt:e.target.value})} />
+                <Input type="datetime-local" value={form.dueAt} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
               </div>
               <div>
                 <label className="text-xs">ลิงก์ที่เกี่ยวข้อง</label>
-                <Input value={form.link} onChange={e=>setForm({...form, link:e.target.value})} placeholder="วางลิงก์เอกสาร" />
+                <Input value={form.link} onChange={e=>setForm({...form, link:e.target.value})} placeholder="วางลิงก์เอกสาร" className="w-full" />
               </div>
               <div>
                 <label className="text-xs">หมวดหมู่</label>
@@ -617,7 +617,7 @@ function TaskItem({task, onUpdate, onDelete}){
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">ชื่องาน</label>
-                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} />
+                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} className="w-full" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">รายละเอียด</label>
@@ -625,11 +625,11 @@ function TaskItem({task, onUpdate, onDelete}){
               </div>
               <div>
                 <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
-                <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} />
+                <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
               </div>
               <div>
                 <label className="text-xs">ลิงก์</label>
-                <Input value={form.link||''} onChange={e=>setForm({...form, link:e.target.value})} />
+                <Input value={form.link||''} onChange={e=>setForm({...form, link:e.target.value})} className="w-full" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">เตือนก่อน</label>
