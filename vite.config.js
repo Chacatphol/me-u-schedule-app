@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+      },
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
