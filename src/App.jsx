@@ -546,6 +546,22 @@ function TaskItem({task, onUpdate, onDelete}){
     setEditing(false)
   }
 
+  const handleStatusChange = () => {
+    const statuses = ['todo', 'doing', 'done'];
+    const currentIndex = statuses.indexOf(task.status);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+
+    let newProgress = task.progress || 0;
+    if (nextStatus === 'done') {
+      newProgress = 100;
+    } else if (task.status === 'done' && nextStatus === 'todo') {
+      // When cycling from 'done' back to 'todo', reset progress.
+      newProgress = 0;
+    }
+
+    onUpdate({ ...task, status: nextStatus, progress: newProgress });
+  };
+
   return (
     <Card className="">
       <div className="flex items-start justify-between gap-3">
@@ -553,7 +569,9 @@ function TaskItem({task, onUpdate, onDelete}){
           <div className="flex items-center gap-2 flex-wrap">
             <div className="font-medium truncate">{task.title}</div>
             {priorityBadge(task.priority)}
-            {statusBadge(task.status)}
+            <button onClick={handleStatusChange} className="transition-transform active:scale-95" title="คลิกเพื่อเปลี่ยนสถานะ">
+              {statusBadge(task.status)}
+            </button>
             {task.subjectName && <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge>}
           </div>
           {task.detail && <div className="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">{task.detail}</div>}
