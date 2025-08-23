@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay } from "date-fns";
+import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User } from "lucide-react";
@@ -833,14 +834,15 @@ function Modal({children, onClose}){
     return ()=> window.removeEventListener('keydown', onKey)
   },[onClose])
 
-  return (
-    <AnimatePresence>
+  return createPortal(
+    <>
       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
       <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-28 mx-auto w-[95%] md:w-[720px] z-50">
         <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
           {children}
         </Card>
       </motion.div>
-    </AnimatePresence>
+    </>,
+    document.body
   )
 }
