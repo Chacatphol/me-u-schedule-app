@@ -675,8 +675,43 @@ function ReminderPicker({value, onChange}){
   )
 }
 
+// Modal สำหรับแสดงรายการงานในวันที่เลือกจากปฏิทิน
+function TaskModal({ date, tasks, onClose }) {
+  // กรองงานเฉพาะวันที่ถูกเลือก
+  const tasksForDate = tasks.filter(task => task.dueAt && isSameDay(new Date(task.dueAt), date));
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="text-lg font-semibold mb-4">
+        งานวันที่ {format(date, 'd MMMM yyyy', { locale: th })}
+      </div>
+      {tasksForDate.length > 0 ? (
+        <ul className="space-y-2">
+          {tasksForDate.map(task => (
+            <li key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
+              <div>
+                <div className="font-medium">{task.title}</div>
+                {task.subjectName && <div className="text-xs text-slate-500">{task.subjectName}</div>}
+              </div>
+              {statusBadge(task.status)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-slate-500">ไม่มีงานในวันนี้</p>
+      )}
+      <div className="mt-4 flex justify-end">
+        <Button onClick={onClose}>ปิด</Button>
+      </div>
+    </Modal>
+  );
+}
+
 function CalendarView({tasks, subjects, setView}){
   const [cursor, setCursor] = useState(new Date())
+  // State สำหรับเก็บวันที่ที่ผู้ใช้คลิก เพื่อแสดง Modal
+  const [selectedDate, setSelectedDate] = useState(null)
+
   const start = startOfWeek(startOfMonth(cursor), {weekStartsOn:1})
   const end = endOfWeek(endOfMonth(cursor), {weekStartsOn:1})
   const days = []
@@ -712,7 +747,9 @@ function CalendarView({tasks, subjects, setView}){
             const key = format(d,'yyyy-MM-dd')
             const items = byDay[key]||[]
             return (
-              <div key={key} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'}`}>
+              // ทำให้แต่ละวันสามารถกดได้ เพื่อเปิด Modal
+              <div key={key} onClick={() => setSelectedDate(d)}
+                   className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
                 <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
                 <div className="space-y-1">
                   {items.slice(0,2).map(t=> (
