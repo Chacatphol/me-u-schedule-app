@@ -386,29 +386,53 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
     <div className="grid md:grid-cols-3 gap-4">
       <Card>
         <SectionTitle><Folder className="h-4 w-4"/> รายวิชา/โปรเจกต์</SectionTitle>
-        <div className="space-y-2 mb-3 max-h-72 overflow-auto pr-1">
-          {state.subjects.map(s=> (
-            <div key={s.id} className={`p-2 rounded-xl border flex items-center justify-between ${selectedSubject===s.id? 'bg-slate-50 dark:bg-slate-800' : ''}`}
-                 onClick={()=> setSelectedSubject(s.id)}>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{background:s.color}} />
-                <div className="text-sm font-medium">{s.name}</div>
-                <div className="text-xs text-slate-500">{subjectTasksCount(s.id)} งาน</div>
-              </div>
-              <div className="flex items-center gap-1">
-                <GhostButton onClick={(e)=>{e.stopPropagation(); const name = prompt('แก้ไขชื่อรายวิชา', s.name); if(name){ dispatch({type:'updateSubject', payload:{...s, name}}) }}}><Pencil className="h-4 w-4"/></GhostButton>
-                <GhostButton onClick={(e)=>{e.stopPropagation(); if(confirm('ลบรายวิชานี้และงานทั้งหมด?')) dispatch({type:'deleteSubject', id:s.id})}}><Trash2 className="h-4 w-4"/></GhostButton>
-              </div>
-            </div>
-          ))}
-          {state.subjects.length===0 && <div className="text-xs text-slate-500">ยังไม่มีรายวิชา กดเพิ่มด้านล่างได้เลย</div>}
-        </div>
-        <div className="space-y-2">
+        {/* ย้ายฟอร์มเพิ่มรายวิชามาไว้ด้านบน */}
+        <div className="space-y-2 mb-4">
           <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} className="w-full" />
           <div className="flex items-center gap-2">
             <Input type="color" defaultValue="#6366f1" ref={colorRef} className="w-16 h-10 p-1" />
             <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4"/> เพิ่มรายวิชา</Button>
           </div>
+        </div>
+
+        {/* ปุ่มแก้ไขและลบแบบรวมศูนย์ */}
+        <div className="flex items-center gap-2 mb-4 border-t border-b border-slate-200 dark:border-slate-700 py-3">
+          <GhostButton
+            onClick={() => {
+              if (!selectedSubject) return;
+              const subject = state.subjects.find(s => s.id === selectedSubject);
+              const name = prompt('แก้ไขชื่อรายวิชา', subject.name);
+              if (name && name.trim()) dispatch({ type: 'updateSubject', payload: { ...subject, name: name.trim() } });
+            }}
+            disabled={!selectedSubject}
+            className="disabled:opacity-50 disabled:cursor-not-allowed flex-1"
+          >
+            <Pencil className="h-4 w-4"/> แก้ไข
+          </GhostButton>
+          <GhostButton
+            onClick={() => {
+              if (!selectedSubject) return;
+              if (confirm('ลบรายวิชานี้และงานทั้งหมด?')) dispatch({ type: 'deleteSubject', id: selectedSubject });
+            }}
+            disabled={!selectedSubject}
+            className="disabled:opacity-50 disabled:cursor-not-allowed flex-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/50 border-rose-200 dark:border-rose-800"
+          >
+            <Trash2 className="h-4 w-4"/> ลบ
+          </GhostButton>
+        </div>
+
+        {/* ปรับการแสดงผลรายวิชาเป็นแบบ Grid */}
+        <div className="grid grid-cols-3 gap-2 max-h-60 overflow-auto pr-1">
+          {state.subjects.map(s=> (
+            <div key={s.id}
+                 className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-all h-24 ${selectedSubject===s.id? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 scale-105' : 'border-slate-200 dark:border-slate-700'}`}
+                 onClick={()=> setSelectedSubject(s.id === selectedSubject ? null : s.id)}>
+              <span className="w-3 h-3 rounded-full mb-1" style={{background:s.color}} />
+              <div className="text-sm font-medium truncate w-full">{s.name}</div>
+              <div className="text-xs text-slate-500">{subjectTasksCount(s.id)} งาน</div>
+            </div>
+          ))}
+          {state.subjects.length===0 && <div className="col-span-full text-center text-xs text-slate-500 py-4">ยังไม่มีรายวิชา</div>}
         </div>
       </Card>
 
