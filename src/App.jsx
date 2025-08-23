@@ -10,15 +10,15 @@ import { db, auth } from "./firebase"; // Import auth
 
 // --- Simple in-file UI kit using Tailwind + a few tiny helpers ---
 const Button = ({ as:Comp = 'button', className = '', ...props }) => (
-  <Comp className={`inline-flex items-center gap-2 rounded-2xl px-3.5 py-2 text-sm shadow-sm hover:shadow transition active:scale-[0.98] bg-slate-900 text-white dark:bg-white dark:text-slate-900 ${className}`} {...props} />
+  <Comp className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-slate-900 text-white dark:bg-white dark:text-slate-900 ${className}`} {...props} />
 );
 const GhostButton = ({ as:Comp = 'button', className = '', ...props }) => (
-  <Comp className={`inline-flex items-center gap-2 rounded-2xl px-3.5 py-2 text-sm transition active:scale-[0.98] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${className}`} {...props} />
+  <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm transition-colors active:scale-[0.98] border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 ${className}`} {...props} />
 );
 const Input = (props) => <input {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Textarea = (props) => <textarea {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Select = (props) => <select {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
-const Card = ({ className='', ...props }) => <div className={`rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 backdrop-blur p-4 ${className}`} {...props} />
+const Card = ({ className='', ...props }) => <div className={`rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl p-4 ${className}`} {...props} />
 const SectionTitle = ({children}) => <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">{children}</div>
 const Badge = ({children, className=''}) => <span className={`px-2 py-0.5 rounded-full text-xs border ${className}`} >{children}</span>
 const Progress = ({value=0}) => (
@@ -261,45 +261,65 @@ export default function App(){
         {view==='settings' && (
           <Settings state={state} dispatch={dispatch} userId={user?.uid} />
         )}
-
-      </div>
+      </main>
     </div>
   )
 }
 
 function Header({user, state, dispatch, view, setView}){
+  const navItems = [
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { key: 'subjects', label: 'รายวิชา', icon: Folder },
+    { key: 'calendar', label: 'ปฏิทิน', icon: CalendarIcon },
+    { key: 'settings', label: 'ตั้งค่า', icon: Layers },
+  ];
+
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
-      <div className="flex items-center gap-3">
-        <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow">
-          <Sparkles className="h-5 w-5" />
-        </motion.div>
-        <div>
-          <div className="text-xl font-bold">ME-U</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">บันทึกตารางงานแบบน่ารัก แต่จริงจัง</div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 w-full flex-wrap justify-between md:w-auto">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <GhostButton onClick={()=>setView('dashboard')} className={view==='dashboard'? 'bg-slate-50 dark:bg-slate-800' : ''}><LayoutGrid className="h-4 w-4"/><span className="hidden sm:inline">Dashboard</span></GhostButton>
-          <GhostButton onClick={()=>setView('subjects')} className={view==='subjects'? 'bg-slate-50 dark:bg-slate-800' : ''}><Folder className="h-4 w-4"/><span className="hidden sm:inline">รายวิชา</span></GhostButton>
-          <GhostButton onClick={()=>setView('calendar')} className={view==='calendar'? 'bg-slate-50 dark:bg-slate-800' : ''}><CalendarIcon className="h-4 w-4"/><span className="hidden sm:inline">ปฏิทิน</span></GhostButton>
-          <GhostButton onClick={()=>setView('settings')} className={view==='settings'? 'bg-slate-50 dark:bg-slate-800' : ''}><Layers className="h-4 w-4"/><span className="hidden sm:inline">ตั้งค่า</span></GhostButton>
-        </div>
-        <div className="flex items-center gap-2 text-sm ml-auto md:ml-0">
-          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></div>
-          {user.photoURL ? (
-            <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
-          ) : (
-            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-              <User className="h-4 w-4 text-slate-500" />
+    <header className="sticky top-0 z-30 w-full bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 mb-4 md:mb-6">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        {/* Top Bar: Logo and User Profile */}
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-3">
+            <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+              <Sparkles className="h-5 w-5" />
+            </motion.div>
+            <div>
+              <div className="text-xl font-bold">ME-U</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">บันทึกตารางงานแบบน่ารัก แต่จริงจัง</div>
             </div>
-          )}
-          <span className="hidden md:inline">{user.displayName || user.email}</span>
-          <GhostButton onClick={()=>signOut(auth)}><LogOut className="h-4 w-4"/></GhostButton>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-2">
+            {navItems.map(({ key, label, icon: Icon }) => (
+              <GhostButton key={key} onClick={()=>setView(key)} className={view===key? 'bg-white dark:bg-slate-800' : ''}><Icon className="h-4 w-4"/>{label}</GhostButton>
+            ))}
+          </nav>
+
+          {/* User Profile - always on top right */}
+          <div className="flex items-center gap-2 text-sm">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                <User className="h-4 w-4 text-slate-500" />
+              </div>
+            )}
+            <span className="hidden lg:inline">{user.displayName || user.email}</span>
+            <GhostButton onClick={()=>signOut(auth)} className="!px-2"><LogOut className="h-4 w-4"/></GhostButton>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Mobile Navigation - below top bar */}
+      <nav className="md:hidden p-2 border-t border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex items-center justify-around">
+          {navItems.map(({ key, label, icon: Icon }) => (
+            <GhostButton key={key} onClick={()=>setView(key)} className={`flex-col h-16 w-20 ${view===key? 'bg-white dark:bg-slate-800' : ''}`}><Icon className="h-5 w-5"/><span className="text-xs">{label}</span></GhostButton>
+          ))}
+        </div>
+      </nav>
+    </header>
   )
 }
 
@@ -328,7 +348,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
       <Card>
         <SectionTitle><BarChart3 className="h-4 w-4"/> ภาพรวมวันนี้</SectionTitle>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
           <div className="w-24 h-24 rounded-full border-8 border-slate-200 dark:border-slate-800 flex items-center justify-center text-xl font-bold">
             {progressToday}%
           </div>
@@ -339,7 +359,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
         </div>
         <div className="mt-3 text-xs text-slate-500">Tip: ทำงานด่วนให้เสร็จก่อน แล้วค่อยเก็บงานย่อย 🧠</div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
           <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
           <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
         </div>
@@ -663,30 +683,32 @@ function CalendarView({tasks, subjects, setView}){
           </div>
         </div>
       </Card>
-      <div className="overflow-x-auto pb-2">
-        <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2 min-w-[21rem]">
-          {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d}>{d}</div>))}
-        </div>
-        <div className="grid grid-cols-7 gap-1 min-w-[21rem]">
-        {days.map(d=>{
-          const key = format(d,'yyyy-MM-dd')
-          const items = byDay[key]||[]
-          return (
-            <div key={key} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'}`}>
-              <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
-              <div className="space-y-1">
-                {items.slice(0,2).map(t=> (
-                  <div key={t.id} className="text-[11px] px-2 py-1 rounded-lg border truncate" style={{borderColor: t.subjectColor||'#e2e8f0'}}>
-                    {t.title}
-                  </div>
-                ))}
-                {items.length>3 && <div className="text-[11px] text-slate-500">+{items.length-3} งาน</div>}
+      <Card>
+        <div className="overflow-x-auto pb-2">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2 min-w-[21rem]">
+            {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d}>{d}</div>))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 min-w-[21rem]">
+          {days.map(d=>{
+            const key = format(d,'yyyy-MM-dd')
+            const items = byDay[key]||[]
+            return (
+              <div key={key} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'}`}>
+                <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
+                <div className="space-y-1">
+                  {items.slice(0,2).map(t=> (
+                    <div key={t.id} className="text-[11px] px-2 py-1 rounded-lg border truncate" style={{borderColor: t.subjectColor||'#e2e8f0'}}>
+                      {t.title}
+                    </div>
+                  ))}
+                  {items.length>2 && <div className="text-[11px] text-slate-500 mt-1">+{items.length-2} งาน</div>}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
@@ -741,7 +763,7 @@ function Settings({state, dispatch, userId}){
     <div className="grid md:grid-cols-2 gap-4">
       <Card>
         <SectionTitle>ธีม</SectionTitle>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'auto'})} className={state.theme==='auto'? 'bg-slate-50 dark:bg-slate-800':''}><RefreshCw className="h-4 w-4"/> อัตโนมัติ</GhostButton>
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'light'})} className={state.theme==='light'? 'bg-slate-50 dark:bg-slate-800':''}><Sun className="h-4 w-4"/> สว่าง</GhostButton>
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'dark'})} className={state.theme==='dark'? 'bg-slate-50 dark:bg-slate-800':''}><Moon className="h-4 w-4"/> มืด</GhostButton>
@@ -750,7 +772,7 @@ function Settings({state, dispatch, userId}){
 
       <Card>
         <SectionTitle>สำรอง/กู้คืน</SectionTitle>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <Button onClick={exportData}><Download className="h-4 w-4"/> ส่งออก JSON</Button>
           <GhostButton onClick={()=>fileRef.current?.click()}><Upload className="h-4 w-4"/> นำเข้า JSON</GhostButton>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importData} />
