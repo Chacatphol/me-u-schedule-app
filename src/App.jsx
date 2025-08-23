@@ -604,8 +604,16 @@ function TaskItem({task, onUpdate, onDelete}){
     onUpdate({ ...task, status: nextStatus, progress: newProgress });
   };
 
+  // สร้างคลาสสำหรับไล่เฉดสีตามสถานะของงาน
+  const statusGradientClass =
+    task.status === 'done'
+      ? 'bg-gradient-to-l from-emerald-400/10' // สีเขียวสำหรับ "เสร็จแล้ว"
+      : task.status === 'doing'
+      ? 'bg-gradient-to-l from-amber-400/10' // สีส้มสำหรับ "กำลังทำ"
+      : ''; // ไม่มีสีสำหรับ "ยังไม่ทำ"
+
   return (
-    <Card className="">
+    <Card className={statusGradientClass}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
