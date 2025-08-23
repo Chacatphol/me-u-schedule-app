@@ -234,7 +234,7 @@ export default function App(){
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100">
+    <div className="min-h-screen text-slate-800 dark:text-slate-100">
       <div className="max-w-6xl mx-auto p-4 md:p-6">
         <Header user={user} state={state} dispatch={dispatch} view={view} setView={setView} />
 
@@ -261,7 +261,7 @@ export default function App(){
         {view==='settings' && (
           <Settings state={state} dispatch={dispatch} userId={user?.uid} />
         )}
-      </main>
+      </div>
     </div>
   )
 }
