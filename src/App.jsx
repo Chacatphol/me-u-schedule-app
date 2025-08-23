@@ -3,7 +3,7 @@ import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMin
 import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
@@ -158,6 +158,24 @@ function priorityBadge(p){
   const txt = p==='high'? 'ด่วน' : p==='med'? 'สำคัญ' : 'ทั่วไป'
   const cls = p==='high'? 'border-rose-400 text-rose-600 dark:text-rose-300' : p==='med'? 'border-indigo-400 text-indigo-600 dark:text-indigo-300' : 'border-slate-300 text-slate-500 dark:text-slate-300'
   return <Badge className={cls}>{txt}</Badge>
+}
+
+function getUrgencyStyle(dueAt) {
+  if (!dueAt) return { gradientClass: '', textColorClass: 'text-slate-500', showFire: false };
+
+  const hoursLeft = differenceInHours(new Date(dueAt), new Date());
+
+  if (hoursLeft <= 6) { // Very urgent, less than 6 hours or overdue
+    return { gradientClass: 'bg-gradient-to-b from-red-500 to-orange-400', textColorClass: 'text-red-500 dark:text-red-400', showFire: true };
+  }
+  if (hoursLeft <= 24) { // Urgent, less than 24 hours
+    return { gradientClass: 'bg-gradient-to-b from-orange-500 to-amber-400', textColorClass: 'text-orange-500 dark:text-orange-400', showFire: false };
+  }
+  if (hoursLeft <= 72) { // Upcoming, less than 3 days
+    return { gradientClass: 'bg-gradient-to-b from-amber-400 to-yellow-300', textColorClass: 'text-amber-500 dark:text-amber-400', showFire: false };
+  }
+  // Not urgent
+  return { gradientClass: '', textColorClass: 'text-slate-500', showFire: false };
 }
 
 // --- Main App ---
@@ -340,19 +358,26 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
         <SectionTitle><TimerReset className="h-4 w-4"/> งานที่ใกล้ถึงกำหนด</SectionTitle>
         {dueSoon.length===0 && <div className="text-sm text-slate-500">ยังไม่มีงานเร่ง รีแล็กซ์ได้หน่อย 🎈</div>}
         <div className="space-y-3">
-          {dueSoon.map(t=> (
-            <div key={t.id} className="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="font-medium truncate">{t.title}</div>
-                <div className="text-xs text-slate-500 truncate">{t.subjectName || 'ไม่ระบุวิชา'} • ส่ง {format(new Date(t.dueAt), "d MMM yyyy HH:mm", {locale: th})} • {timeLeftLabel(t.dueAt)}</div>
+          {dueSoon.map(t=> {
+            const urgency = getUrgencyStyle(t.dueAt);
+            return (
+            <div key={t.id} className="relative p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between overflow-hidden">
+              <div className={`absolute inset-y-0 left-0 w-1.5 ${urgency.gradientClass}`} />
+              <div className="min-w-0 pl-2">
+                <div className="font-medium truncate flex items-center gap-1.5">
+                  {urgency.showFire && <Flame className="h-4 w-4 text-red-500 flex-shrink-0" />}
+                  <span>{t.title}</span>
+                </div>
+                <div className={`text-xs truncate ${urgency.textColorClass}`}>{t.subjectName || 'ไม่ระบุวิชา'} • ส่ง {format(new Date(t.dueAt), "d MMM yyyy HH:mm", {locale: th})} • {isPast(new Date(t.dueAt)) ? 'เลยกำหนดแล้ว' : timeLeftLabel(t.dueAt)}</div>
                 <div className="mt-2"><Progress value={t.progress||0} /></div>
               </div>
-              <div className="flex items-center gap-2 ml-3">
+              <div className="flex items-center gap-2 ml-3 flex-shrink-0">
                 {priorityBadge(t.priority)}
                 {statusBadge(t.status)}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </Card>
 
