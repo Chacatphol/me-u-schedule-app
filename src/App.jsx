@@ -64,6 +64,15 @@ function reducer(state, action){
 
 // --- Helpers ---
 const uid = () => Math.random().toString(36).slice(2,9)
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex || !/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) return '';
+  let c = hex.substring(1).split('');
+  if (c.length === 3) {
+    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+  }
+  c = '0x' + c.join('');
+  return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${alpha})`;
+};
 
 // --- Data layer (Firebase) with Auth ---
 function usePersistentState(userId){
@@ -422,16 +431,24 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
         </div>
 
         {/* ปรับการแสดงผลรายวิชาเป็นแบบ Grid */}
-        <div className="grid grid-cols-3 gap-2 max-h-60 overflow-auto pr-1">
-          {state.subjects.map(s=> (
-            <div key={s.id}
-                 className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-all h-24 ${selectedSubject===s.id? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 scale-105' : 'border-slate-200 dark:border-slate-700'}`}
-                 onClick={()=> setSelectedSubject(s.id === selectedSubject ? null : s.id)}>
-              <span className="w-3 h-3 rounded-full mb-1" style={{background:s.color}} />
-              <div className="text-sm font-medium truncate w-full">{s.name}</div>
-              <div className="text-xs text-slate-500">{subjectTasksCount(s.id)} งาน</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-3 gap-2">
+          {state.subjects.map(s=> {
+            const isSelected = selectedSubject === s.id;
+            const selectedStyle = isSelected ? { 
+              backgroundColor: hexToRgba(s.color, 0.15),
+              borderColor: s.color 
+            } : {};
+            return (
+              <div key={s.id}
+                   className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-colors h-24 ${!isSelected ? 'border-slate-200 dark:border-slate-700' : ''}`}
+                   style={selectedStyle}
+                   onClick={()=> setSelectedSubject(isSelected ? null : s.id)}>
+                <span className="w-3 h-3 rounded-full mb-1" style={{background:s.color}} />
+                <div className="text-sm font-medium truncate w-full">{s.name}</div>
+                <div className="text-xs text-slate-500">{subjectTasksCount(s.id)} งาน</div>
+              </div>
+            )
+          })}
           {state.subjects.length===0 && <div className="col-span-full text-center text-xs text-slate-500 py-4">ยังไม่มีรายวิชา</div>}
         </div>
       </Card>
