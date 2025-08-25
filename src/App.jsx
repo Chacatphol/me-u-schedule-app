@@ -16,8 +16,26 @@ const Button = ({ as:Comp = 'button', className = '', ...props }) => (
 const GhostButton = ({ as:Comp = 'button', className = '', ...props }) => (
   <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm transition-colors active:scale-[0.98] border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 whitespace-nowrap ${className}`} {...props} />
 );
-const Input = (props) => <input {...props} className={`rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
-const Textarea = (props) => <textarea {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
+const Input = React.forwardRef((props, ref) => <input ref={ref} {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />)
+const Textarea = (props) => {
+  const textareaRef = useRef(null);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = '0px';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [props.value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      rows={1}
+      {...props}
+      className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 resize-none overflow-y-hidden ${props.className || ''}`}
+    />
+  );
+};
 const Select = (props) => <select {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
 const Card = ({ className='', ...props }) => <div className={`rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl p-4 ${className}`} {...props} />
 const SectionTitle = ({children}) => <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">{children}</div>
@@ -545,7 +563,7 @@ function AddTaskButton({subjects, onAdd}){
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">รายละเอียด</label>
-                <Textarea rows={3} value={form.detail} onChange={e=>setForm({...form, detail:e.target.value})} placeholder="โน้ตย่อย หรือ checklist คร่าวๆ" />
+                <Textarea value={form.detail} onChange={e=>setForm({...form, detail:e.target.value})} placeholder="โน้ตย่อย หรือ checklist คร่าวๆ" />
               </div>
               <div>
                 <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
@@ -679,9 +697,9 @@ function TaskItem({task, onUpdate, onDelete}){
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <GhostButton onClick={()=> setEditing(true)}><Pencil className="h-4 w-4"/></GhostButton>
-          <GhostButton onClick={()=> onDelete(task.id)}><Trash2 className="h-4 w-4"/></GhostButton>
+        <div className="flex flex-col items-end gap-1.5">
+          <Button onClick={()=> setEditing(true)} className="!py-1 !px-3 !text-xs">ดูรายละเอียด</Button>
+          <GhostButton onClick={()=> onDelete(task.id)} className="!p-1.5 !rounded-lg text-rose-500/80 hover:bg-rose-50 dark:hover:bg-rose-900/50"><Trash2 className="h-4 w-4"/></GhostButton>
         </div>
       </div>
 
@@ -712,7 +730,7 @@ function TaskItem({task, onUpdate, onDelete}){
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">รายละเอียด</label>
-                <Textarea rows={3} value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
+                <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
               </div>
               <div>
                 <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
