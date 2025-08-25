@@ -363,17 +363,22 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             return (
             <div key={t.id} className="relative p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between overflow-hidden">
               <div className={`absolute inset-y-0 left-0 w-1.5 ${urgency.gradientClass}`} />
-              <div className="min-w-0 pl-2">
+              <div className="min-w-0 pl-2 flex-grow">
                 <div className="font-medium truncate flex items-center gap-1.5">
                   {urgency.showFire && <Flame className="h-4 w-4 text-red-500 flex-shrink-0" />}
                   <span>{t.title}</span>
                 </div>
-                <div className={`text-xs truncate ${urgency.textColorClass}`}>{t.subjectName || 'ไม่ระบุวิชา'} • ส่ง {format(new Date(t.dueAt), "d MMM yyyy HH:mm", {locale: th})} • {isPast(new Date(t.dueAt)) ? 'เลยกำหนดแล้ว' : timeLeftLabel(t.dueAt)}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {t.subjectName || 'ไม่ระบุวิชา'} • ส่ง {format(new Date(t.dueAt), "d MMM yyyy HH:mm", {locale: th})}
+                </div>
+                <div className={`text-xs font-semibold ${urgency.textColorClass}`}>
+                  {isPast(new Date(t.dueAt)) ? 'เลยกำหนดแล้ว' : timeLeftLabel(t.dueAt)}
+                </div>
                 <div className="mt-2"><Progress value={t.progress||0} /></div>
               </div>
-              <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                {priorityBadge(t.priority)}
+              <div className="flex flex-col items-end gap-1 ml-3 flex-shrink-0">
                 {statusBadge(t.status)}
+                {priorityBadge(t.priority)}
               </div>
             </div>
             )
