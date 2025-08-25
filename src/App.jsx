@@ -514,7 +514,7 @@ function AddTaskButton({subjects, onAdd}){
     const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null }
     onAdd(payload)
     setOpen(false)
-    setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', '', status:'todo', progress:0, reminders:[]}))
+    setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', status:'todo', progress:0, reminders:[]}))
   }
 
   return (
