@@ -987,7 +987,7 @@ function Modal({children, onClose}){
   return createPortal(
     <>
       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-28 mx-auto w-[95%] md:w-[720px] z-50">
+      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-28 mx-auto w-[95%] md:w-[720px] z-50 max-h-[80vh] overflow-y-auto">
         <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
           {children}
         </Card>
