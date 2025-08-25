@@ -626,8 +626,7 @@ function TaskItem({task, onUpdate, onDelete}){
   const [form, setForm] = useState({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
   useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''}), [task])
 
-  const [showFullDetail, setShowFullDetail] = useState(false) // New state for truncation
-
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const save = ()=>{
     const payload = {...form, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null}
     onUpdate(payload)
