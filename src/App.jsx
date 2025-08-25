@@ -674,6 +674,384 @@ function TaskItem({task, onUpdate, onDelete}){
           </div>
           {task.detail && (
             <>
+              <div className={`text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap line-clamp-4`}>
+                {task.detail}
+              </div>
+              {task.detail && task.detail.length > 150 && ( // Check if truncation is needed
+                <button onClick={() => setShowDetailModal(true)} className="text-xs text-indigo-500 hover:underline mt-1">
+                  ดูรายละเอียด
+                </button>
+              )}
+            </>
+          )}
+          <div className="mt-2">
+            <Progress value={task.progress||0} />
+            <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+              {task.dueAt ? (
+                <>
+                  <CalendarIcon className="h-3 w-3"/> ส่ง {format(new Date(task.dueAt), "d MMM yyyy HH:mm", {locale: th})}
+                  <span>• {isPast(new Date(task.dueAt))? 'เลยกำหนดแล้ว' : timeLeftLabel(task.dueAt)}</span>
+                </>
+              ) : <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3"/> ไม่มีวันส่ง</span>}
+              {task.link && <a href={task.link} target="_blank" className="inline-flex items-center gap-1 underline"><LinkIcon className="h-3 w-3"/> ลิงก์งาน</a>}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <GhostButton onClick={()=> setEditing(true)}><Pencil className="h-4 w-4"/></GhostButton>
+          <GhostButton onClick={()=> onDelete(task.id)}><Trash2 className="h-4 w-4"/></GhostButton>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {editing && (
+          <Modal onClose={()=>setEditing(false)}>
+            <div className="text-lg font-semibold mb-2">อัปเดตงาน</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs">สถานะ</label>
+                <Select value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
+                  <option value="todo">ยังไม่ทำ</option>
+                  <option value="doing">กำลังทำ</option>
+                  <option value="done">เสร็จแล้ว</option>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs">ความสำคัญ</label>
+                <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
+                  <option value="high">ด่วน</option>
+                  <option value="med">สำคัญ</option>
+                  <option value="low">ทั่วไป</option>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">ชื่องาน</label>
+                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} className="w-full" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">รายละเอียด</label>
+                <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
+                <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
+              </div>
+              <div>
+                <label className="text-xs">ลิงก์</label>
+                <Input value={form.link||''} onChange={e=>setForm({...form, link:e.target.value})} className="w-full" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">เตือนก่อน</label>
+                <ReminderPicker value={form.reminders||[]} onChange={(reminders)=> setForm({...form, reminders})} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">ความคืบหน้า: {form.progress}%</label>
+                <input type="range" min={0} max={100} value={form.progress||0} onChange={e=>setForm({...form, progress: Number(e.target.value)})} className="w-full" />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <GhostButton onClick={()=>setEditing(false)}>ยกเลิก</GhostButton>
+              <Button onClick={save}><Check className="h-4 w-4"/> บันทึก</Button>
+            </div>
+          </Modal>
+        )}
+        {showDetailModal && (
+          <TaskDetailModal task={task} onClose={() => setShowDetailModal(false)} />
+        )}
+      </AnimatePresence>
+    </Card>
+  )
+}
+
+function TaskDetailModal({ task, onClose }) {
+  return (
+    <Modal onClose={onClose}>
+      <div className="text-lg font-semibold mb-2">รายละเอียดงาน</div>
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-slate-500">ชื่องาน</label>
+          <div className="font-medium">{task.title}</div>
+        </div>
+        {task.detail && (
+          <div>
+            <label className="text-xs text-slate-500">รายละเอียด</label>
+            <div className="whitespace-pre-wrap">{task.detail}</div>
+          </div>
+        )}
+        <div>
+          <label className="text-xs text-slate-500">กำหนดส่ง</label>
+          <div className="flex items-center gap-2">
+            {task.dueAt ? (
+              <>
+                <CalendarIcon className="h-4 w-4 text-slate-500"/>
+                <span>{format(new Date(task.dueAt), "d MMM yyyy HH:mm", {locale: th})}</span>
+                <span className="text-sm text-slate-500">• {isPast(new Date(task.dueAt)) ? 'เลยกำหนดแล้ว' : timeLeftLabel(task.dueAt)}</span>
+              </>
+            ) : (
+              <span className="text-slate-500">ไม่มีวันส่ง</span>
+            )}
+          </div>
+        </div>
+        {task.link && (
+          <div>
+            <label className="text-xs text-slate-500">ลิงก์ที่เกี่ยวข้อง</label>
+            <a href={task.link} target="_blank" className="text-indigo-500 hover:underline flex items-center gap-1">
+              <LinkIcon className="h-4 w-4"/> {task.link}
+            </a>
+          </div>
+        )}
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button onClick={onClose}>ปิด</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function ReminderPicker({value, onChange}){
+  const items = [
+    {label:'15 นาที', type:'minutes', amount:15},
+    {label:'30 นาที', type:'minutes', amount:30},
+    {label:'1 ชม.', type:'hours', amount:1},
+    {label:'3 ชม.', type:'hours', amount:3},
+    {label:'1 วัน', type:'days', amount:1},
+  ]
+  const toggle = (it)=>{
+    const exists = value.some(x=>x.type===it.type && x.amount===it.amount)
+    onChange(exists? value.filter(x=>!(x.type===it.type && x.amount===it.amount)) : [...value, it])
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map(it=> (
+        <GhostButton key={it.label} onClick={()=>toggle(it)} className={value.some(x=>x.type===it.type && x.amount===it.amount)? 'bg-slate-50 dark:bg-slate-800' : ''}>
+          <Bell className="h-4 w-4"/> {it.label}
+        </GhostButton>
+      ))}
+    </div>
+  )
+}
+
+// Modal สำหรับแสดงรายการงานในวันที่เลือกจากปฏิทิน
+function TaskModal({ date, tasks, onClose }) {
+  // กรองงานเฉพาะวันที่ถูกเลือก
+  const tasksForDate = tasks.filter(task => task.dueAt && isSameDay(new Date(task.dueAt), date));
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="text-lg font-semibold mb-4">
+        งานวันที่ {format(date, 'd MMMM yyyy', { locale: th })}
+      </div>
+      {tasksForDate.length > 0 ? (
+        <ul className="space-y-2">
+          {tasksForDate.map(task => (
+            <li key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
+              <div>
+                <div className="font-medium">{task.title}</div>
+                {task.subjectName && <div className="text-xs text-slate-500">{task.subjectName}</div>}
+              </div>
+              {statusBadge(task.status)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-slate-500">ไม่มีงานในวันนี้</p>
+      )}
+      <div className="mt-4 flex justify-end">
+        <Button onClick={onClose}>ปิด</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function CalendarView({tasks, subjects, setView}){
+  const [cursor, setCursor] = useState(new Date())
+  // State สำหรับเก็บวันที่ที่ผู้ใช้คลิก เพื่อแสดง Modal
+  const [selectedDate, setSelectedDate] = useState(null)
+
+  const start = startOfWeek(startOfMonth(cursor), {weekStartsOn:1})
+  const end = endOfWeek(endOfMonth(cursor), {weekStartsOn:1})
+  const days = []
+  for(let d=new Date(start); d<=end; d=add(d,{days:1})) days.push(new Date(d))
+
+  const byDay = tasks.reduce((acc,t)=>{
+    if(!t.dueAt) return acc
+    const k = format(new Date(t.dueAt), 'yyyy-MM-dd')
+    acc[k] = acc[k] || []
+    acc[k].push(t)
+    return acc
+  }, {})
+
+  return (
+    <div className="space-y-3">
+      <Card>
+        <div className="flex items-center justify-between">
+          <SectionTitle><CalendarIcon className="h-4 w-4"/> ปฏิทิน</SectionTitle>
+          <div className="flex items-center gap-2">
+            <GhostButton onClick={()=> setCursor(add(cursor,{months:-1}))}><ChevronLeft className="h-4 w-4"/></GhostButton>
+            <div className="text-sm font-medium w-40 text-center">{format(cursor, 'MMMM yyyy', {locale: th})}</div>
+            <GhostButton onClick={()=> setCursor(add(cursor,{months:1}))}><ChevronRight className="h-4 w-4"/></GhostButton>
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <div className="overflow-x-auto pb-2">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2 min-w-[21rem]">
+            {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d}>{d}</div>))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 min-w-[21rem]">
+          {days.map(d=>{
+            const key = format(d,'yyyy-MM-dd')
+            const items = byDay[key]||[]
+            return (
+              // ส่วนของ Cell ในแต่ละวัน
+              <div key={key} onClick={() => setSelectedDate(d)} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
+                <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
+                <div className="space-y-1">
+                  {items.slice(0,2).map(b=> (
+                    <div key={b.id} className="text-[11px] px-2 py-1 rounded-lg border truncate" style={{borderColor: b.subjectColor||'#e2e8f0'}}>
+                      {b.title}
+                    </div>
+                  ))}
+                  {items.length>2 && <div className="text-[11px] text-slate-500 mt-1">+{items.length-2} งาน</div>}
+                </div>
+              </div>
+            )
+          })}
+          </div>
+        </div>
+      </Card>
+      {/* ย้าย AnimatePresence มาไว้ตรงนี้ เพื่อให้ Modal แสดงผลครอบคลุมทั้งหน้าจอ */}
+      <AnimatePresence>
+        {selectedDate && (
+          <TaskModal date={selectedDate} tasks={tasks} onClose={() => setSelectedDate(null)} />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function Settings({state, dispatch, userId}){
+  const fileRef = useRef(null)
+
+  const exportData = ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'meu-data.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importData = (e)=>{
+    const file = e.target.files?.[0]
+    if(!file) return
+    const reader = new FileReader()
+    reader.onload = (ev)=>{
+      try{
+        const data = JSON.parse(ev.target.result);
+        dispatch({type: 'load', payload: data});
+        alert('นำเข้าข้อมูลสำเร็จ!');
+      }catch{
+        alert('ไฟล์ไม่ถูกต้อง');
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleClearData = () => {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+      if (!userId) return;
+      const docRef = doc(db, "schedules", userId);
+      // เขียนทับข้อมูลบน Firebase ด้วย state เริ่มต้น (ว่างเปล่า)
+      setDoc(docRef, initialState)
+        .then(() => {
+          alert('ล้างข้อมูลสำเร็จแล้ว!');
+          // onSnapshot จะอัปเดตหน้าจอให้โดยอัตโนมัติ
+        })
+        .catch(error => {
+          console.error("Error clearing document: ", error);
+          alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+        });
+    }
+  };
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      <Card>
+        <SectionTitle>ธีม</SectionTitle>
+        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'auto'})} className={state.theme==='auto'? 'bg-slate-50 dark:bg-slate-800':''}><RefreshCw className="h-4 w-4"/> อัตโนมัติ</GhostButton>
+          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'light'})} className={state.theme==='light'? 'bg-slate-50 dark:bg-slate-800':''}><Sun className="h-4 w-4"/> สว่าง</GhostButton>
+          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'dark'})} className={state.theme==='dark'? 'bg-slate-50 dark:bg-slate-800':''}><Moon className="h-4 w-4"/> มืด</GhostButton>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionTitle>สำรอง/กู้คืน</SectionTitle>
+        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+          <Button onClick={exportData}><Download className="h-4 w-4"/> ส่งออก JSON</Button>
+          <GhostButton onClick={()=>fileRef.current?.click()}><Upload className="h-4 w-4"/> นำเข้า JSON</GhostButton>
+          <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importData} />
+        </div>
+        <div className="mt-3 text-xs text-slate-500">ข้อมูลจะถูกบันทึกออนไลน์อัตโนมัติ</div>
+      </Card>
+
+      <Card className="md:col-span-2">
+        <SectionTitle>ล้างข้อมูลทั้งหมด</SectionTitle>
+        <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleClearData}>ล้างข้อมูล</Button>
+      </Card>
+    </div>
+  )
+}
+
+function LoginScreen() {
+  const handleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error signing in with Google", error);
+      alert("เกิดข้อผิดพลาดในการล็อกอิน: " + error.message);
+    }
+  };
+
+  return (
+    <div className="h-screen flex flex-col items-center justify-center gap-4">
+      <h1 className="text-2xl font-bold">ยินดีต้อนรับสู่ ME-U Schedule</h1>
+      <Button onClick={handleSignIn}><User className="h-4 w-4" /> เข้าสู่ระบบด้วย Google</Button>
+    </div>
+  );
+}
+
+function Modal({children, onClose}){
+  useEffect(()=>{
+    const onKey = (e)=>{ if(e.key==='Escape') onClose() }
+
+    window.addEventListener('keydown', onKey)
+    return ()=> window.removeEventListener('keydown', onKey)
+  },[onClose])
+
+  return createPortal(
+    <>
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-28 mx-auto w-[95%] md:w-[720px] z-50 max-h-[80vh] overflow-y-auto">
+        <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
+          {children}
+        </Card>
+      </motion.div>
+    </>,
+    document.body
+  )
+}
+            {priorityBadge(task.priority)}
+            <button onClick={handleStatusChange} className="transition-transform active:scale-95" title="คลิกเพื่อเปลี่ยนสถานะ">
+              {statusBadge(task.status)}
+            </button>
+            {task.subjectName && <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge>}
+          </div>
+          {task.detail && (
+            <>
               <div className={`text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap ${showFullDetail ? '' : 'line-clamp-4'}`}>
                 {task.detail}
               </div>
@@ -697,8 +1075,7 @@ function TaskItem({task, onUpdate, onDelete}){
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <Button onClick={()=> setEditing(true)} className="!py-1 !px-3 !text-xs">ดูรายละเอียด</Button>
+        <div className="flex items-center gap-2">
           <GhostButton onClick={()=> onDelete(task.id)} className="!p-1.5 !rounded-lg text-rose-500/80 hover:bg-rose-50 dark:hover:bg-rose-900/50"><Trash2 className="h-4 w-4"/></GhostButton>
         </div>
       </div>
