@@ -16,7 +16,8 @@
     "lucide-react": "^0.541.0",
     "postcss-cli": "^11.0.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "recharts": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
