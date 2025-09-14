@@ -12,7 +12,20 @@
   }
 
   body {
-    @apply bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900;
+    @apply min-h-screen m-0 bg-fixed;
+    background: 
+      radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.15), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.15), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(147, 51, 234, 0.15), transparent 40%),
+      linear-gradient(to bottom right, rgb(240, 249, 255), rgb(243, 244, 255), rgb(245, 243, 255));
+  }
+
+  .dark body {
+    background: 
+      radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.15), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.15), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(147, 51, 234, 0.15), transparent 40%),
+      linear-gradient(to bottom right, rgb(2, 6, 23), rgb(3, 7, 18), rgb(9, 9, 11));
   }
 
   html.dark {
