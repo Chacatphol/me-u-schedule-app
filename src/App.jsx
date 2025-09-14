@@ -7,8 +7,8 @@ import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
-import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui';
-import { StatsView } from './components/StatsView';
+import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
+import { StatsView } from './components/StatsView.jsx';
 
 // --- Data layer ---
 const initialState = {
