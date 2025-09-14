@@ -720,7 +720,7 @@ function AddTaskButton({subjects, onAdd}){
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <GhostButton onClick={()=>setOpen(false)}>ยกเลิก</GhoastButton>
+              <GhostButton onClick={()=>setOpen(false)}>ยกเลิก</GhostButton>
               <Button onClick={submit}><Check className="h-4 w-4"/> บันทึก</Button>
             </div>
           </Modal>
