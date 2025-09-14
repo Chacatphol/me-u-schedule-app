@@ -253,102 +253,102 @@ export default function App(){
   useEffect(()=>{ tasks.forEach(scheduleReminder) }, [tasks])
 
   if (loadingAuth) {
-    return <div className="h-screen flex items-center justify-center">กำลังโหลด...</div>;
+    return <div className="h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">กำลังโหลด...</div>;
   }
 
   if (!user) {
     return <LoginScreen />;
   }
 
-  return (
-    <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-6xl mx-auto p-4 md:p-6">
-        <Header user={user} state={state} dispatch={dispatch} view={view} setView={setView} />
-
-        {view==='dashboard' && (
-          <Dashboard
-            state={state}
-            tasks={tasks}
-            dueSoon={dueSoon}
-            progressToday={progressToday}
-            lazyScore={lazyScore}
-            setView={setView}
-            setSelectedSubject={setSelectedSubject}
-          />
-        )}
-
-        {/* สถิติถูกย้ายไปรวมกับ Dashboard แล้ว */}
-
-        {view==='subjects' && (
-          <SubjectsView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} setSelectedSubject={setSelectedSubject} selectedSubject={selectedSubject} />
-        )}
-
-        {view==='calendar' && (
-          <CalendarView tasks={tasks} subjects={state.subjects} setView={setView} />
-        )}
-
-        {view==='settings' && (
-          <Settings state={state} dispatch={dispatch} userId={user?.uid} />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Header({user, state, dispatch, view, setView}){
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { key: 'subjects', label: 'รายวิชา', icon: Folder },
+    { key: 'tasks', label: 'Tasks', icon: ListTodo },
     { key: 'calendar', label: 'ปฏิทิน', icon: CalendarIcon },
     { key: 'settings', label: 'ตั้งค่า', icon: Layers },
   ];
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 mb-4 md:mb-6 -mx-4 md:-mx-6 px-4 md:px-6">
-      <div className="max-w-6xl mx-auto px-4 md:px-6">
-        {/* Top Bar: Logo and User Profile */}
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 font-sans">
+      {/* Aurora Background */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 dark:bg-purple-500/10 rounded-full filter blur-3xl animate-blob"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 dark:bg-indigo-500/10 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-pink-400/20 dark:bg-pink-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+      
+      <div className="md:flex pb-24 md:pb-0">
+        {/* Sidebar for Desktop */}
+        <aside className="hidden md:flex flex-col w-64 bg-white/50 dark:bg-slate-950/50 backdrop-blur-lg border-r border-slate-200/50 dark:border-slate-800/50 p-4">
+          <div className="flex items-center gap-3 mb-8">
             <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="h-5 w-5" />
             </motion.div>
             <div>
-              <div className="text-xl font-bold">ME-U</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">บันทึกตารางงานแบบน่ารัก แต่จริงจัง</div>
+              <div className="text-xl font-bold font-display">ME-U</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Your Schedule</div>
             </div>
           </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="flex-1 space-y-2">
             {navItems.map(({ key, label, icon: Icon }) => (
-              <GhostButton key={key} onClick={()=>setView(key)} className={view===key? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400' : ''}><Icon className="h-4 w-4"/>{label}</GhostButton>
+              <a key={key} href="#" onClick={(e) => { e.preventDefault(); setView(key); }}
+                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${view === key ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-md' : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300'}`}>
+                <Icon className="h-5 w-5" />
+                <span>{label}</span>
+              </a>
             ))}
           </nav>
-
-          {/* User Profile - always on top right */}
-          <div className="flex items-center gap-2 text-sm">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                <User className="h-4 w-4 text-slate-500" />
-              </div>
-            )}
-            <span className="hidden lg:inline">{user.displayName || user.email}</span>
-            <GhostButton onClick={()=>signOut(auth)} className="!px-2"><LogOut className="h-4 w-4"/></GhostButton>
+          <div className="mt-auto">
+            <div className="flex items-center gap-2 text-sm p-2 rounded-xl bg-slate-200/50 dark:bg-slate-800/50">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center">
+                  <User className="h-4 w-4 text-slate-500" />
+                </div>
+              )}
+              <span className="truncate flex-1 font-medium">{user.displayName || user.email}</span>
+              <GhostButton onClick={() => signOut(auth)} className="!px-2"><LogOut className="h-4 w-4" /></GhostButton>
+            </div>
           </div>
-        </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-8">
+          {/* Mobile Header */}
+          <header className="md:hidden flex items-center justify-between mb-4">
+             <div className="flex items-center gap-3">
+              <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Sparkles className="h-5 w-5" />
+              </motion.div>
+              <div className="text-xl font-bold font-display">ME-U</div>
+            </div>
+            <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
+          </header>
+
+          <AnimatePresence mode="wait">
+            <motion.div key={view} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.2 }}>
+              {view === 'dashboard' && <Dashboard state={state} tasks={tasks} dueSoon={dueSoon} progressToday={progressToday} lazyScore={lazyScore} setView={setView} setSelectedSubject={setSelectedSubject} />}
+              {view === 'tasks' && <TasksView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} selectedSubject={selectedSubject} setSelectedSubject={setSelectedSubject} />}
+              {view === 'calendar' && <CalendarView tasks={tasks} subjects={state.subjects} setView={setView} />}
+              {view === 'settings' && <Settings state={state} dispatch={dispatch} userId={user?.uid} />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
 
-      {/* Mobile Navigation - below top bar */}
-      <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-800/80">
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-lg border-t border-slate-200/50 dark:border-slate-800/50 p-2">
         <div className="flex items-center justify-around">
           {navItems.map(({ key, label, icon: Icon }) => (
-            <GhostButton key={key} onClick={()=>setView(key)} className={`flex-col h-16 w-full rounded-none border-0 border-t-2 ${view===key? 'bg-white dark:bg-slate-800 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent'}`}><Icon className="h-5 w-5"/><span className="text-xs">{label}</span></GhostButton>
+            <a key={key} href="#" onClick={(e) => { e.preventDefault(); setView(key); }}
+               className={`flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all ${view === key ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>
+              <Icon className="h-6 w-6" />
+              <span className="text-xs mt-1">{label}</span>
+            </a>
           ))}
         </div>
-      </nav>
-    </header>
+      </div>
+    </div>
   )
 }
 
@@ -720,7 +720,7 @@ function AddTaskButton({subjects, onAdd}){
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <GhostButton onClick={()=>setOpen(false)}>ยกเลิก</GhostButton>
+              <GhostButton onClick={()=>setOpen(false)}>ยกเลิก</GhoastButton>
               <Button onClick={submit}><Check className="h-4 w-4"/> บันทึก</Button>
             </div>
           </Modal>
