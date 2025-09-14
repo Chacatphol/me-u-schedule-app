@@ -381,10 +381,10 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
   return (
     <div className="space-y-6">
       {/* Dashboard Overview */}
-      <Card>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <Card className="pb-4 md:pb-4 lg:pb-2">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           {/* Left Side - Combined Stats */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-5">
             {/* Streak and Progress Combined */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -430,7 +430,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             </div>
 
             {/* Task Status Overview */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800 text-center">
                 <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{doneTasks}</div>
                 <div className="text-sm text-emerald-800 dark:text-emerald-300">เสร็จแล้ว</div>
@@ -447,7 +447,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
 
           {/* Right Side - Performance Stats */}
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-3 lg:space-y-4 lg:col-span-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="text-lg font-semibold">ประสิทธิภาพโดยรวม</div>
@@ -460,7 +460,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             </div>
 
             {/* Productivity Score */}
-            <div className="mt-6 h-64">
+            <div className="mt-4 h-48 lg:h-56">
               <div className="flex justify-between items-center mb-2">
                 <div className="text-sm font-medium">ความขยันวันนี้</div>
                 <div className="text-sm font-semibold text-indigo-500">{100 - lazyScore}%</div>
