@@ -276,9 +276,7 @@ export default function App(){
           />
         )}
 
-        {view === 'stats' && (
-          <StatsView tasks={tasks} />
-        )}
+        {/* สถิติถูกย้ายไปรวมกับ Dashboard แล้ว */}
 
         {view==='subjects' && (
           <SubjectsView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} setSelectedSubject={setSelectedSubject} selectedSubject={selectedSubject} />
