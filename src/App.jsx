@@ -380,78 +380,101 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
   return (
     <div className="space-y-4">
-      {/* Streak and Today's Overview */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <Card>
-          <SectionTitle><Flame className="h-4 w-4 text-orange-500"/> เข้าใช้งานต่อเนื่อง</SectionTitle>
-          <div className="flex items-center justify-center gap-2">
-            <div className="text-4xl font-bold text-orange-500">{state.loginStreak}</div>
-            <div className="text-sm text-slate-500">วัน</div>
-          </div>
-          <p className="text-center text-xs text-slate-400 mt-2">เข้าใช้งานทุกวันเพื่อเพิ่ม Streak!</p>
-        </Card>
-
-        <Card>
-          <SectionTitle><BarChart3 className="h-4 w-4"/> ความคืบหน้าวันนี้</SectionTitle>
-          <div className="flex justify-center items-center h-24">
-            <div className="relative w-24 h-24">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-2xl font-bold">{progressToday}%</div>
+      {/* Dashboard Overview */}
+      <Card className="p-6">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Left Side - Combined Stats */}
+          <div className="space-y-6">
+            {/* Streak and Progress Combined */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
+                    <Flame className="h-8 w-8 text-white"/>
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 rounded-full px-2 py-0.5 border border-orange-200 dark:border-orange-900">
+                    <div className="text-sm font-semibold text-orange-500">{state.loginStreak}d</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold text-lg">Streak ต่อเนื่อง</div>
+                  <div className="text-sm text-slate-500">เข้าใช้งานทุกวัน!</div>
+                </div>
               </div>
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="48" cy="48" r="45"
-                  fill="none"
-                  strokeWidth="6"
-                  className="stroke-slate-200 dark:stroke-slate-700"
+              {/* Today's Progress Ring */}
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div>
+                    <div className="text-2xl font-bold text-indigo-500">{progressToday}%</div>
+                    <div className="text-xs text-slate-500 text-center">วันนี้</div>
+                  </div>
+                </div>
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="40" cy="40" r="36"
+                    fill="none"
+                    strokeWidth="7"
+                    className="stroke-slate-200 dark:stroke-slate-700"
+                  />
+                  <circle
+                    cx="40" cy="40" r="36"
+                    fill="none"
+                    strokeWidth="7"
+                    strokeDasharray={`${2 * Math.PI * 36}`}
+                    strokeDashoffset={`${2 * Math.PI * 36 * (1 - progressToday / 100)}`}
+                    className="stroke-indigo-500 transition-all duration-1000"
+                    style={{ strokeLinecap: 'round' }}
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Task Status Overview */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800">
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{doneTasks}</div>
+                <div className="text-sm text-emerald-800 dark:text-emerald-300">เสร็จแล้ว</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 border border-amber-200 dark:border-amber-800">
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{doingTasks}</div>
+                <div className="text-sm text-amber-800 dark:text-amber-300">กำลังทำ</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30 border border-slate-200 dark:border-slate-800">
+                <div className="text-2xl font-bold text-slate-600 dark:text-slate-400">{todoTasks}</div>
+                <div className="text-sm text-slate-800 dark:text-slate-300">ยังไม่ทำ</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Performance Stats */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-lg font-semibold">ประสิทธิภาพโดยรวม</div>
+                <div className="text-sm text-slate-500">จากงานทั้งหมด {totalTasks} งาน</div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-indigo-500">{donePercentage}%</div>
+                <div className="text-sm text-slate-500">ความสำเร็จ</div>
+              </div>
+            </div>
+
+            {/* Productivity Score */}
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-sm font-medium">ความขยันวันนี้</div>
+                <div className="text-sm font-semibold text-indigo-500">{100 - lazyScore}%</div>
+              </div>
+              <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
+                  style={{ width: `${100 - lazyScore}%` }}
                 />
-                <circle
-                  cx="48" cy="48" r="45"
-                  fill="none"
-                  strokeWidth="6"
-                  strokeDasharray={`${2 * Math.PI * 45}`}
-                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - progressToday / 100)}`}
-                  className="stroke-primary-500 transition-all duration-1000"
-                  style={{ strokeLinecap: 'round' }}
-                />
-              </svg>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <SectionTitle><CheckCircle className="h-4 w-4"/> สถานะงาน</SectionTitle>
-          <div className="flex flex-col justify-between h-24">
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div>
-                <div className="text-2xl font-bold text-emerald-500">{doneTasks}</div>
-                <div className="text-xs text-slate-500">เสร็จแล้ว</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-amber-500">{doingTasks}</div>
-                <div className="text-xs text-slate-500">กำลังทำ</div>
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-sm font-medium">ขยันวันนี้: {100 - lazyScore}%</div>
-            </div>
           </div>
-        </Card>
-
-        <Card>
-          <SectionTitle><TrendingUp className="h-4 w-4"/> ความสำเร็จ</SectionTitle>
-          <div className="flex flex-col justify-between h-24">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{totalTasks}</div>
-              <div className="text-xs text-slate-500">งานทั้งหมด</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-medium">สำเร็จ {donePercentage}%</div>
-              <Progress value={donePercentage} />
-            </div>
-          </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* Stats Graphs */}
       <div className="grid md:grid-cols-3 gap-4">
