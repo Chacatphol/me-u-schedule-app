@@ -3,12 +3,12 @@ import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMin
 import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
-import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui';
+import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
 
 // --- Data layer ---
 const initialState = {
@@ -182,7 +182,7 @@ export default function App(){
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [state, dispatch] = usePersistentState(user?.uid);
-  const [view, setView] = useState('dashboard') // dashboard | subjects | calendar | stats | settings
+  const [view, setView] = useState('dashboard') // dashboard | tasks | calendar | settings
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [query, setQuery] = useState('')
   const [nowTick, setNowTick] = useState(0)
@@ -379,10 +379,10 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Dashboard Overview */}
-      <Card className="p-6">
-        <div className="grid md:grid-cols-2 gap-8">
+      <Card>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Left Side - Combined Stats */}
           <div className="space-y-6">
             {/* Streak and Progress Combined */}
@@ -392,7 +392,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
                     <Flame className="h-8 w-8 text-white"/>
                   </div>
-                  <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 rounded-full px-2 py-0.5 border border-orange-200 dark:border-orange-900">
+                  <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 rounded-full px-2 py-0.5 border border-orange-200 dark:border-orange-900 shadow-md">
                     <div className="text-sm font-semibold text-orange-500">{state.loginStreak}d</div>
                   </div>
                 </div>
@@ -405,7 +405,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
               <div className="relative w-20 h-20">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div>
-                    <div className="text-2xl font-bold text-indigo-500">{progressToday}%</div>
+                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{progressToday}%</div>
                     <div className="text-xs text-slate-500 text-center">วันนี้</div>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                     fill="none"
                     strokeWidth="7"
                     strokeDasharray={`${2 * Math.PI * 36}`}
-                    strokeDashoffset={`${2 * Math.PI * 36 * (1 - progressToday / 100)}`}
+                    strokeDashoffset={`${(2 * Math.PI * 36) * (1 - progressToday / 100)}`}
                     className="stroke-indigo-500 transition-all duration-1000"
                     style={{ strokeLinecap: 'round' }}
                   />
@@ -431,15 +431,15 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
             {/* Task Status Overview */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800 text-center">
                 <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{doneTasks}</div>
                 <div className="text-sm text-emerald-800 dark:text-emerald-300">เสร็จแล้ว</div>
               </div>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 border border-amber-200 dark:border-amber-800">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 border border-amber-200 dark:border-amber-800 text-center">
                 <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{doingTasks}</div>
                 <div className="text-sm text-amber-800 dark:text-amber-300">กำลังทำ</div>
               </div>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30 border border-slate-200 dark:border-slate-800">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30 border border-slate-200 dark:border-slate-800 text-center">
                 <div className="text-2xl font-bold text-slate-600 dark:text-slate-400">{todoTasks}</div>
                 <div className="text-sm text-slate-800 dark:text-slate-300">ยังไม่ทำ</div>
               </div>
@@ -447,20 +447,20 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
 
           {/* Right Side - Performance Stats */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="text-lg font-semibold">ประสิทธิภาพโดยรวม</div>
                 <div className="text-sm text-slate-500">จากงานทั้งหมด {totalTasks} งาน</div>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-indigo-500">{donePercentage}%</div>
+                <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{donePercentage}%</div>
                 <div className="text-sm text-slate-500">ความสำเร็จ</div>
               </div>
             </div>
 
             {/* Productivity Score */}
-            <div className="mt-6">
+            <div className="mt-6 h-64">
               <div className="flex justify-between items-center mb-2">
                 <div className="text-sm font-medium">ความขยันวันนี้</div>
                 <div className="text-sm font-semibold text-indigo-500">{100 - lazyScore}%</div>
@@ -475,35 +475,6 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
         </div>
       </Card>
-
-      {/* Stats Graphs */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="md:col-span-2 h-80">
-          <SectionTitle><TrendingUp className="h-4 w-4" /> งานที่เสร็จใน 7 วันล่าสุด</SectionTitle>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={tasksCompletedLast7Days} margin={{ top: 5, right: 20, left: -10, bottom: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
-              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: 'rgba(30,41,59,0.8)', border: 'none', borderRadius: '0.75rem' }} />
-              <Bar dataKey="count" fill="#818cf8" name="จำนวนงาน" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card className="h-80">
-          <SectionTitle><CheckCircle className="h-4 w-4" /> งานตามความสำคัญ</SectionTitle>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={priorityData} layout="vertical" margin={{ top: 5, right: 20, left: -10, bottom: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
-              <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" fontSize={12} tickLine={false} axisLine={false} width={50} />
-              <Tooltip cursor={{ fill: 'rgba(128,128,128,0.1)' }} contentStyle={{ backgroundColor: 'rgba(30,41,59,0.8)', border: 'none', borderRadius: '0.75rem' }} />
-              <Bar dataKey="count" name="จำนวนงาน" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
 
       {/* Upcoming Tasks */}
       <Card>
@@ -539,25 +510,27 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
       </Card>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-        <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
+      <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+        <Button onClick={()=>{ setView('tasks'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
         <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
       </div>
     </div>
   )
 }
 
-function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
-  const nameRef = useRef('')
-  const colorRef = useRef('#6366f1')
+function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
+  const nameRef = useRef(null);
+  const colorRef = useRef(null);
+  const [isAddingSubject, setAddingSubject] = useState(false);
 
-  const subjectTasksCount = (sid)=> tasks.filter(t=>t.subjectId===sid).length
+  const subjectTasksCount = useMemo(() => Object.fromEntries(state.subjects.map(s => [s.id, tasks.filter(t => t.subjectId === s.id).length])), [tasks, state.subjects]);
 
   const addSubject = ()=>{
     const name = nameRef.current.value.trim();
     if(!name) return;
     dispatch({type:'addSubject', payload:{id:uid(), name, color: colorRef.current.value}});
     nameRef.current.value = '';
+    setAddingSubject(false);
   };
 
   const handleEditSubject = () => {
@@ -580,63 +553,77 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-4">
-      <Card>
-        <SectionTitle><Folder className="h-4 w-4"/> รายวิชา/โปรเจกต์</SectionTitle>
-        <div className="space-y-2 mb-4"> {/* ย้ายฟอร์มเพิ่มรายวิชามาไว้ด้านบน */}
-          <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} />
-          <div className="flex items-center gap-2">
-            <Input type="color" defaultValue="#6366f1" ref={colorRef} className="w-16 h-10 p-1" />
-            <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4"/> เพิ่มรายวิชา</Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold font-display">Tasks</h1>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input placeholder="ค้นหางาน..." value={query} onChange={e => setQuery(e.target.value)} className="pl-9 w-full" />
           </div>
+          <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 mb-4 border-t border-b border-slate-200 dark:border-slate-700 py-3">
-          <GhostButton onClick={handleEditSubject} disabled={!selectedSubject} className="disabled:opacity-50 disabled:cursor-not-allowed flex-1"><Pencil className="h-4 w-4"/> แก้ไข</GhostButton>
-          <GhostButton onClick={handleDeleteSubject} disabled={!selectedSubject} className="disabled:opacity-50 disabled:cursor-not-allowed flex-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/50 border-rose-200 dark:border-rose-800"><Trash2 className="h-4 w-4"/> ลบ</GhostButton>
+      {/* Subject Filters & Management */}
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <Filter className="h-4 w-4" />
+            <span>Filter by Subject</span>
+          </div>
+          <GhostButton onClick={() => setAddingSubject(true)} className="!px-2"><Plus className="h-4 w-4" /></GhostButton>
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {state.subjects.map(s=> {
-            const isSelected = selectedSubject === s.id;
-            // Use CSS variables for dynamic colors
-            const selectedStyle = isSelected ? {
-              '--subject-color': s.color, 
-              '--subject-color-bg': hexToRgba(s.color, 0.15),
-            } : {};
-            return (
-              <div key={s.id}
-                   className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-all h-24 hover:shadow-md hover:-translate-y-1 ${isSelected ? 'bg-[--subject-color-bg] border-[--subject-color] shadow-lg -translate-y-1' : 'border-slate-200 dark:border-slate-700'}`}
-                   style={selectedStyle}
-                   onClick={()=> setSelectedSubject(isSelected ? null : s.id)}>
-                <span className="w-3 h-3 rounded-full mb-1" style={{background:s.color}} />
-                <div className="text-sm font-medium truncate w-full">{s.name}</div>
-                <div className="text-xs text-slate-500">{subjectTasksCount(s.id)} งาน</div>
+        <div className="flex flex-wrap gap-2">
+          <GhostButton onClick={() => setSelectedSubject(null)} className={!selectedSubject ? 'bg-white dark:bg-slate-800' : ''}>All Subjects</GhostButton>
+          {state.subjects.map(s => (
+            <GhostButton key={s.id} onClick={() => setSelectedSubject(s.id)} className={`relative group ${selectedSubject === s.id ? 'bg-white dark:bg-slate-800' : ''}`}>
+              <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
+              {s.name}
+              <Badge className="ml-1 !px-1.5">{subjectTasksCount[s.id] || 0}</Badge>
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-slate-800 text-white px-2 py-1 rounded-md text-xs">
+                <button onClick={(e) => { e.stopPropagation(); handleEditSubject(s.id); }} className="p-1 hover:bg-slate-700 rounded-md"><Pencil className="h-3 w-3" /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(s.id); }} className="p-1 hover:bg-slate-700 rounded-md"><Trash2 className="h-3 w-3" /></button>
               </div>
-            )
-          })}
-          {state.subjects.length===0 && <div className="col-span-full text-center text-xs text-slate-500 py-4">ยังไม่มีรายวิชา</div>}
+            </GhostButton>
+          ))}
         </div>
       </Card>
 
-      <div className="md:col-span-2 space-y-3">
-        <Card>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <SectionTitle><ListTodo className="h-4 w-4"/> งานทั้งหมด {selectedSubject? `ของวิชา: ${state.subjects.find(s=>s.id===selectedSubject)?.name}`: ''}</SectionTitle>
-            <div className="flex items-center gap-2">
-              <Input placeholder="ค้นหางาน..." value={query} onChange={e=>setQuery(e.target.value)} className="flex-1 md:w-auto md:w-64" />
-              <AddTaskButton subjects={state.subjects} onAdd={(payload)=> dispatch({type:'addTask', payload})} />
-            </div>
-          </div>
-        </Card>
-
-        <div className="space-y-3">
+      {/* Task List */}
+      <div className="space-y-4">
+        <AnimatePresence>
           {filteredTasks.map(t=> (
-            <TaskItem key={t.id} task={t} onUpdate={(p)=>dispatch({type:'updateTask', payload:p})} onDelete={(id)=>dispatch({type:'deleteTask', id})} />
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              <TaskItem task={t} onUpdate={(p)=>dispatch({type:'updateTask', payload:p})} onDelete={(id)=>dispatch({type:'deleteTask', id})} />
+            </motion.div>
           ))}
-          {filteredTasks.length===0 && <Card className="text-sm text-slate-500">ยังไม่มีงาน ลองเพิ่มงานใหม่ดูน้า</Card>}
-        </div>
+        </AnimatePresence>
+        {filteredTasks.length === 0 && <div className="text-center text-slate-500 py-10">ไม่มีงานที่ตรงกับเงื่อนไข</div>}
       </div>
+
+      <AnimatePresence>
+        {isAddingSubject && (
+          <Modal onClose={() => setAddingSubject(false)}>
+            <div className="text-lg font-semibold mb-2">เพิ่มรายวิชาใหม่</div>
+            <div className="space-y-3">
+              <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} />
+              <div className="flex items-center gap-2">
+                <Input type="color" defaultValue="#6366f1" ref={colorRef} className="w-16 h-10 p-1" />
+                <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4" /> เพิ่ม</Button>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -1141,9 +1128,15 @@ function LoginScreen() {
   };
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-bold">ยินดีต้อนรับสู่ ME-U Schedule</h1>
-      <Button onClick={handleSignIn}><User className="h-4 w-4" /> เข้าสู่ระบบด้วย Google</Button>
+    <div className="h-screen flex flex-col items-center justify-center gap-8 bg-slate-100 dark:bg-slate-950 p-4">
+      <div className="text-center">
+        <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="inline-block h-20 w-20 mb-4 rounded-3xl bg-indigo-600 text-white items-center justify-center shadow-lg shadow-indigo-500/30">
+          <Sparkles className="h-12 w-12 m-4" />
+        </motion.div>
+        <h1 className="text-3xl font-bold font-display">ยินดีต้อนรับสู่ ME-U</h1>
+        <p className="text-slate-500 mt-2">จัดการตารางงานและชีวิตให้ง่ายขึ้น</p>
+      </div>
+      <Button onClick={handleSignIn} className="!px-6 !py-3 !text-base"><User className="h-5 w-5" /> เข้าสู่ระบบด้วย Google</Button>
     </div>
   );
 }
