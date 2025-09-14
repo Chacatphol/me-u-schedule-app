@@ -7,8 +7,7 @@ import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, TimerReset
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
-import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
-import { StatsView } from './components/StatsView.jsx';
+import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui';
 
 // --- Data layer ---
 const initialState = {
@@ -302,7 +301,6 @@ function Header({user, state, dispatch, view, setView}){
     { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { key: 'subjects', label: 'รายวิชา', icon: Folder },
     { key: 'calendar', label: 'ปฏิทิน', icon: CalendarIcon },
-    { key: 'stats', label: 'สถิติ', icon: TrendingUp },
     { key: 'settings', label: 'ตั้งค่า', icon: Layers },
   ];
 
@@ -356,9 +354,137 @@ function Header({user, state, dispatch, view, setView}){
 }
 
 function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, setSelectedSubject}){
-    return (
-    <div className="grid md:grid-cols-3 gap-4">
-      <Card className="md:col-span-2">
+  // Calculate stats
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter(t => t.status === 'done').length;
+  const doingTasks = tasks.filter(t => t.status === 'doing').length;
+  const todoTasks = tasks.filter(t => t.status === 'todo').length;
+  const donePercentage = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  const tasksByPriority = tasks.reduce((acc, task) => {
+    acc[task.priority] = (acc[task.priority] || 0) + 1;
+    return acc;
+  }, { high: 0, med: 0, low: 0 });
+
+  const tasksCompletedLast7Days = Array.from({ length: 7 }).map((_, i) => {
+    const date = subDays(new Date(), i);
+    const formattedDate = format(date, 'MMM d');
+    const count = tasks.filter(t => t.status === 'done' && t.updatedAt && format(new Date(t.updatedAt), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')).length;
+    return { date: formattedDate, count };
+  }).reverse();
+
+  const priorityData = [
+    { name: 'ด่วน', count: tasksByPriority.high, fill: '#ef4444' },
+    { name: 'สำคัญ', count: tasksByPriority.med, fill: '#6366f1' },
+    { name: 'ทั่วไป', count: tasksByPriority.low, fill: '#64748b' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Streak and Today's Overview */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card>
+          <SectionTitle><Flame className="h-4 w-4 text-orange-500"/> เข้าใช้งานต่อเนื่อง</SectionTitle>
+          <div className="flex items-center justify-center gap-2">
+            <div className="text-4xl font-bold text-orange-500">{state.loginStreak}</div>
+            <div className="text-sm text-slate-500">วัน</div>
+          </div>
+          <p className="text-center text-xs text-slate-400 mt-2">เข้าใช้งานทุกวันเพื่อเพิ่ม Streak!</p>
+        </Card>
+
+        <Card>
+          <SectionTitle><BarChart3 className="h-4 w-4"/> ความคืบหน้าวันนี้</SectionTitle>
+          <div className="flex justify-center items-center h-24">
+            <div className="relative w-24 h-24">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-2xl font-bold">{progressToday}%</div>
+              </div>
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="48" cy="48" r="45"
+                  fill="none"
+                  strokeWidth="6"
+                  className="stroke-slate-200 dark:stroke-slate-700"
+                />
+                <circle
+                  cx="48" cy="48" r="45"
+                  fill="none"
+                  strokeWidth="6"
+                  strokeDasharray={`${2 * Math.PI * 45}`}
+                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - progressToday / 100)}`}
+                  className="stroke-primary-500 transition-all duration-1000"
+                  style={{ strokeLinecap: 'round' }}
+                />
+              </svg>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle><CheckCircle className="h-4 w-4"/> สถานะงาน</SectionTitle>
+          <div className="flex flex-col justify-between h-24">
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div>
+                <div className="text-2xl font-bold text-emerald-500">{doneTasks}</div>
+                <div className="text-xs text-slate-500">เสร็จแล้ว</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-amber-500">{doingTasks}</div>
+                <div className="text-xs text-slate-500">กำลังทำ</div>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-medium">ขยันวันนี้: {100 - lazyScore}%</div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle><TrendingUp className="h-4 w-4"/> ความสำเร็จ</SectionTitle>
+          <div className="flex flex-col justify-between h-24">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{totalTasks}</div>
+              <div className="text-xs text-slate-500">งานทั้งหมด</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-medium">สำเร็จ {donePercentage}%</div>
+              <Progress value={donePercentage} />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Stats Graphs */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="md:col-span-2 h-80">
+          <SectionTitle><TrendingUp className="h-4 w-4" /> งานที่เสร็จใน 7 วันล่าสุด</SectionTitle>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={tasksCompletedLast7Days} margin={{ top: 5, right: 20, left: -10, bottom: -10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: 'rgba(30,41,59,0.8)', border: 'none', borderRadius: '0.75rem' }} />
+              <Bar dataKey="count" fill="#818cf8" name="จำนวนงาน" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card className="h-80">
+          <SectionTitle><CheckCircle className="h-4 w-4" /> งานตามความสำคัญ</SectionTitle>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={priorityData} layout="vertical" margin={{ top: 5, right: 20, left: -10, bottom: -10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+              <XAxis type="number" hide />
+              <YAxis type="category" dataKey="name" fontSize={12} tickLine={false} axisLine={false} width={50} />
+              <Tooltip cursor={{ fill: 'rgba(128,128,128,0.1)' }} contentStyle={{ backgroundColor: 'rgba(30,41,59,0.8)', border: 'none', borderRadius: '0.75rem' }} />
+              <Bar dataKey="count" name="จำนวนงาน" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* Upcoming Tasks */}
+      <Card>
         <SectionTitle><TimerReset className="h-4 w-4"/> งานที่ใกล้ถึงกำหนด</SectionTitle>
         {dueSoon.length===0 && <div className="text-sm text-slate-500">ยังไม่มีงานเร่ง รีแล็กซ์ได้หน่อย 🎈</div>}
         <div className="space-y-3">
@@ -390,36 +516,14 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
         </div>
       </Card>
 
-      <div className="space-y-4">
-        <Card>
-            <SectionTitle><Flame className="h-4 w-4 text-orange-500"/> เข้าใช้งานต่อเนื่อง</SectionTitle>
-            <div className="flex items-center justify-center gap-2">
-                <div className="text-4xl font-bold text-orange-500">{state.loginStreak}</div>
-                <div className="text-sm text-slate-500">วัน</div>
-            </div>
-            <p className="text-center text-xs text-slate-400 mt-2">เข้าใช้งานทุกวันเพื่อเพิ่ม Streak!</p>
-        </Card>
-        <Card>
-          <SectionTitle><BarChart3 className="h-4 w-4"/> ภาพรวมวันนี้</SectionTitle>
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left mb-4">
-            <div className="w-24 h-24 rounded-full border-8 border-slate-200 dark:border-slate-800 flex items-center justify-center text-xl font-bold">
-              {progressToday}%
-            </div>
-            <div className="text-sm">
-              <div>ขยันวันนี้: <span className="font-semibold">{100 - lazyScore}%</span></div>
-              <div className="text-slate-500">คะแนนขี้เกียจ: {lazyScore}</div>
-              <div className="text-slate-500">งานเสร็จแล้ว: {tasks.filter(t=>t.status==='done').length}</div>
-            </div>
-          </div>
-          <div className="mt-3 text-xs text-slate-500 text-center sm:text-left">Tip: ทำงานด่วนให้เสร็จก่อน แล้วค่อยเก็บงานย่อย 🧠</div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
-            <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
-            <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
-          </div>
-        </Card>
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+        <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
+        <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
       </div>
     </div>
   )
+}
 }
 
 function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
