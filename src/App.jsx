@@ -10,13 +10,13 @@ import { db, auth } from "./firebase"; // Import auth
 
 
 // --- Simple in-file UI kit using Tailwind + a few tiny helpers ---
-const Button = ({ as:Comp = 'button', className = '', ...props }) => (
+const Button = ({ as: Comp = 'button', className = '', ...props }) => (
   <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-slate-900 text-white dark:bg-white dark:text-slate-900 whitespace-nowrap ${className}`} {...props} />
 );
-const GhostButton = ({ as:Comp = 'button', className = '', ...props }) => (
+const GhostButton = ({ as: Comp = 'button', className = '', ...props }) => (
   <Comp className={`inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm transition-colors active:scale-[0.98] border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 whitespace-nowrap ${className}`} {...props} />
 );
-const Input = React.forwardRef((props, ref) => <input ref={ref} {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />)
+const Input = React.forwardRef((props, ref) => <input ref={ref} {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow ${props.className || ''}`} />)
 const Textarea = (props) => {
   const textareaRef = useRef(null);
   useEffect(() => {
@@ -31,13 +31,13 @@ const Textarea = (props) => {
     <textarea
       ref={textareaRef}
       rows={1}
-      {...props}
-      className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 resize-none overflow-y-hidden ${props.className || ''}`}
+      {...props} 
+      className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow resize-none overflow-y-hidden ${props.className || ''}`}
     />
   );
 };
-const Select = (props) => <select {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring focus:ring-indigo-200 ${props.className||''}`} />
-const Card = ({ className='', ...props }) => <div className={`rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl p-4 ${className}`} {...props} />
+const Select = (props) => <select {...props} className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow ${props.className || ''}`} />
+const Card = ({ className = '', ...props }) => <div className={`rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl p-4 shadow-sm ${className}`} {...props} />
 const SectionTitle = ({children}) => <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">{children}</div>
 const Badge = ({children, className=''}) => <span className={`px-2 py-0.5 rounded-full text-xs border ${className}`} >{children}</span>
 const Progress = ({value=0}) => (
@@ -280,7 +280,7 @@ export default function App(){
   }
 
   return (
-    <div className="min-h-screen text-slate-800 dark:text-slate-100">
+    <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-950">
       <div className="max-w-6xl mx-auto p-4 md:p-6">
         <Header user={user} state={state} dispatch={dispatch} view={view} setView={setView} />
 
@@ -321,12 +321,12 @@ function Header({user, state, dispatch, view, setView}){
   ];
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 mb-4 md:mb-6">
+    <header className="sticky top-0 z-30 w-full bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 mb-4 md:mb-6 -mx-4 md:-mx-6 px-4 md:px-6">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         {/* Top Bar: Logo and User Profile */}
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+            <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="h-5 w-5" />
             </motion.div>
             <div>
@@ -338,7 +338,7 @@ function Header({user, state, dispatch, view, setView}){
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
             {navItems.map(({ key, label, icon: Icon }) => (
-              <GhostButton key={key} onClick={()=>setView(key)} className={view===key? 'bg-white dark:bg-slate-800' : ''}><Icon className="h-4 w-4"/>{label}</GhostButton>
+              <GhostButton key={key} onClick={()=>setView(key)} className={view===key? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400' : ''}><Icon className="h-4 w-4"/>{label}</GhostButton>
             ))}
           </nav>
 
@@ -358,10 +358,10 @@ function Header({user, state, dispatch, view, setView}){
       </div>
 
       {/* Mobile Navigation - below top bar */}
-      <nav className="md:hidden p-2 border-t border-slate-200/80 dark:border-slate-800/80">
+      <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-800/80">
         <div className="flex items-center justify-around">
           {navItems.map(({ key, label, icon: Icon }) => (
-            <GhostButton key={key} onClick={()=>setView(key)} className={`flex-col h-16 w-20 ${view===key? 'bg-white dark:bg-slate-800' : ''}`}><Icon className="h-5 w-5"/><span className="text-xs">{label}</span></GhostButton>
+            <GhostButton key={key} onClick={()=>setView(key)} className={`flex-col h-16 w-full rounded-none border-0 border-t-2 ${view===key? 'bg-white dark:bg-slate-800 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent'}`}><Icon className="h-5 w-5"/><span className="text-xs">{label}</span></GhostButton>
           ))}
         </div>
       </nav>
@@ -379,7 +379,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           {dueSoon.map(t=> {
             const urgency = getUrgencyStyle(t.dueAt);
             return (
-            <div key={t.id} className="relative p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between overflow-hidden">
+            <div key={t.id} className="relative p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between overflow-hidden hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
               <div className={`absolute inset-y-0 left-0 w-1.5 ${urgency.gradientClass}`} />
               <div className="min-w-0 pl-2 flex-grow">
                 <div className="font-medium truncate flex items-center gap-1.5">
@@ -406,7 +406,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
       <Card>
         <SectionTitle><BarChart3 className="h-4 w-4"/> ภาพรวมวันนี้</SectionTitle>
-        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left mb-4">
           <div className="w-24 h-24 rounded-full border-8 border-slate-200 dark:border-slate-800 flex items-center justify-center text-xl font-bold">
             {progressToday}%
           </div>
@@ -416,7 +416,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             <div className="text-slate-500">งานเสร็จแล้ว: {tasks.filter(t=>t.status==='done').length}</div>
           </div>
         </div>
-        <div className="mt-3 text-xs text-slate-500">Tip: ทำงานด่วนให้เสร็จก่อน แล้วค่อยเก็บงานย่อย 🧠</div>
+        <div className="mt-3 text-xs text-slate-500 text-center sm:text-left">Tip: ทำงานด่วนให้เสร็จก่อน แล้วค่อยเก็บงานย่อย 🧠</div>
         <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
           <Button onClick={()=>{ setView('subjects'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
           <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
@@ -478,13 +478,14 @@ function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, s
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {state.subjects.map(s=> {
             const isSelected = selectedSubject === s.id;
-            const selectedStyle = isSelected ? { 
-              backgroundColor: hexToRgba(s.color, 0.15),
-              borderColor: s.color 
+            // Use CSS variables for dynamic colors
+            const selectedStyle = isSelected ? {
+              '--subject-color': s.color, 
+              '--subject-color-bg': hexToRgba(s.color, 0.15),
             } : {};
             return (
               <div key={s.id}
-                   className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-colors h-24 ${!isSelected ? 'border-slate-200 dark:border-slate-700' : ''}`}
+                   className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-all h-24 hover:shadow-md hover:-translate-y-1 ${isSelected ? 'bg-[--subject-color-bg] border-[--subject-color] shadow-lg -translate-y-1' : 'border-slate-200 dark:border-slate-700'}`}
                    style={selectedStyle}
                    onClick={()=> setSelectedSubject(isSelected ? null : s.id)}>
                 <span className="w-3 h-3 rounded-full mb-1" style={{background:s.color}} />
@@ -903,7 +904,7 @@ function CalendarView({tasks, subjects, setView}){
             const items = byDay[key]||[]
             return (
               // ส่วนของ Cell ในแต่ละวัน
-              <div key={key} onClick={() => setSelectedDate(d)} className={`min-h-28 rounded-2xl border p-2 ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
+              <div key={key} onClick={() => setSelectedDate(d)} className={`min-h-28 rounded-2xl border p-2 shadow-sm ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
                 <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
                 <div className="space-y-1">
                   {items.slice(0,2).map(b=> (
@@ -977,7 +978,7 @@ function Settings({state, dispatch, userId}){
 
   return (
     <div className="grid md:grid-cols-2 gap-4">
-      <Card>
+      <Card className="sm:col-span-2">
         <SectionTitle>ธีม</SectionTitle>
         <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <GhostButton onClick={()=>dispatch({type:'setTheme', value:'auto'})} className={state.theme==='auto'? 'bg-slate-50 dark:bg-slate-800':''}><RefreshCw className="h-4 w-4"/> อัตโนมัติ</GhostButton>
@@ -986,7 +987,7 @@ function Settings({state, dispatch, userId}){
         </div>
       </Card>
 
-      <Card>
+      <Card className="sm:col-span-1">
         <SectionTitle>สำรอง/กู้คืน</SectionTitle>
         <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <Button onClick={exportData}><Download className="h-4 w-4"/> ส่งออก JSON</Button>
@@ -996,9 +997,12 @@ function Settings({state, dispatch, userId}){
         <div className="mt-3 text-xs text-slate-500">ข้อมูลจะถูกบันทึกออนไลน์อัตโนมัติ</div>
       </Card>
 
-      <Card className="md:col-span-2">
+      <Card className="sm:col-span-1">
         <SectionTitle>ล้างข้อมูลทั้งหมด</SectionTitle>
-        <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleClearData}>ล้างข้อมูล</Button>
+        <div className="flex flex-col items-start">
+          <Button className="bg-rose-600 hover:bg-rose-700 dark:text-white" onClick={handleClearData}>ล้างข้อมูล</Button>
+          <p className="text-xs text-slate-500 mt-2">การกระทำนี้จะลบข้อมูลทั้งหมดในบัญชีของคุณอย่างถาวร</p>
+        </div>
       </Card>
     </div>
   )
@@ -1034,7 +1038,7 @@ function Modal({children, onClose}){
   return createPortal(
     <>
       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-28 mx-auto w-[95%] md:w-[720px] z-50 max-h-[80vh] overflow-y-auto">
+      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 top-14 md:top-20 mx-auto w-[95%] md:w-[720px] z-50 max-h-[85vh] overflow-y-auto rounded-3xl">
         <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
           {children}
         </Card>
