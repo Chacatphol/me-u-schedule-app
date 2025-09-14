@@ -405,7 +405,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
               <div className="relative w-20 h-20">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div>
-                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{progressToday}%</div>
+                    <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{progressToday}%</div>
                     <div className="text-xs text-slate-500 text-center">วันนี้</div>
                   </div>
                 </div>
