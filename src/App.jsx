@@ -522,7 +522,6 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
     </div>
   )
 }
-}
 
 function SubjectsView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
   const nameRef = useRef('')
