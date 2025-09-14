@@ -460,7 +460,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             </div>
 
             {/* Productivity Score */}
-            <div className="mt-4 h-48 lg:h-56">
+            <div className="mt-4 h-20 lg:h-56">
               <div className="flex justify-between items-center mb-2">
                 <div className="text-sm font-medium">ความขยันวันนี้</div>
                 <div className="text-sm font-semibold text-indigo-500">{100 - lazyScore}%</div>
