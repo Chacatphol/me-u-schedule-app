@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay, subDays } from "date-fns";
+import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay, subDays, eachDayOfInterval } from "date-fns";
 import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -353,169 +353,198 @@ export default function App(){
 }
 
 function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, setSelectedSubject}){
-  // Calculate stats
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter(t => t.status === 'done').length;
-  const doingTasks = tasks.filter(t => t.status === 'doing').length;
-  const todoTasks = tasks.filter(t => t.status === 'todo').length;
-  const donePercentage = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  
+  // Sort tasks by due date for carousel
+  const upcomingTasks = tasks.filter(t => t.dueAt && t.status !== 'done')
+    .sort((a,b) => new Date(a.dueAt) - new Date(b.dueAt));
+  
+  const visibleTasks = upcomingTasks.slice(carouselIndex, carouselIndex + 3);
+  const canScrollUp = carouselIndex > 0;
+  const canScrollDown = carouselIndex + 3 < upcomingTasks.length;
 
-  const tasksByPriority = tasks.reduce((acc, task) => {
-    acc[task.priority] = (acc[task.priority] || 0) + 1;
+  // Calendar setup
+  const [calendarCursor, setCalendarCursor] = useState(new Date());
+  const start = startOfMonth(calendarCursor);
+  const end = endOfMonth(calendarCursor);
+  const calendarDays = eachDayOfInterval({
+    start: startOfWeek(start, {weekStartsOn: 1}),
+    end: endOfWeek(end, {weekStartsOn: 1})
+  });
+
+  // Group tasks by date for calendar
+  const tasksByDate = tasks.reduce((acc, task) => {
+    if (!task.dueAt) return acc;
+    const dateKey = format(new Date(task.dueAt), 'yyyy-MM-dd');
+    acc[dateKey] = acc[dateKey] || [];
+    acc[dateKey].push(task);
     return acc;
-  }, { high: 0, med: 0, low: 0 });
-
-  const tasksCompletedLast7Days = Array.from({ length: 7 }).map((_, i) => {
-    const date = subDays(new Date(), i);
-    const formattedDate = format(date, 'MMM d');
-    const count = tasks.filter(t => t.status === 'done' && t.updatedAt && format(new Date(t.updatedAt), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')).length;
-    return { date: formattedDate, count };
-  }).reverse();
-
-  const priorityData = [
-    { name: 'ด่วน', count: tasksByPriority.high, fill: '#ef4444' },
-    { name: 'สำคัญ', count: tasksByPriority.med, fill: '#6366f1' },
-    { name: 'ทั่วไป', count: tasksByPriority.low, fill: '#64748b' },
-  ];
+  }, {});
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Overview */}
-      <Card className="pb-4 md:pb-4 lg:pb-2">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-          {/* Left Side - Combined Stats */}
-          <div className="space-y-4 lg:space-y-5">
-            {/* Streak and Progress Combined */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
-                    <Flame className="h-8 w-8 text-white"/>
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 rounded-full px-2 py-0.5 border border-orange-200 dark:border-orange-900 shadow-md">
-                    <div className="text-sm font-semibold text-orange-500">{state.loginStreak}d</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-semibold text-lg">Streak ต่อเนื่อง</div>
-                  <div className="text-sm text-slate-500">เข้าใช้งานทุกวัน!</div>
-                </div>
-              </div>
-              {/* Today's Progress Ring */}
-              <div className="relative w-20 h-20">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div>
-                    <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{progressToday}%</div>
-                    <div className="text-xs text-slate-500 text-center">วันนี้</div>
-                  </div>
-                </div>
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="40" cy="40" r="36"
-                    fill="none"
-                    strokeWidth="7"
-                    className="stroke-slate-200 dark:stroke-slate-700"
-                  />
-                  <circle
-                    cx="40" cy="40" r="36"
-                    fill="none"
-                    strokeWidth="7"
-                    strokeDasharray={`${2 * Math.PI * 36}`}
-                    strokeDashoffset={`${(2 * Math.PI * 36) * (1 - progressToday / 100)}`}
-                    className="stroke-indigo-500 transition-all duration-1000"
-                    style={{ strokeLinecap: 'round' }}
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Task Status Overview */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800 text-center">
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{doneTasks}</div>
-                <div className="text-sm text-emerald-800 dark:text-emerald-300">เสร็จแล้ว</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 border border-amber-200 dark:border-amber-800 text-center">
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{doingTasks}</div>
-                <div className="text-sm text-amber-800 dark:text-amber-300">กำลังทำ</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30 border border-slate-200 dark:border-slate-800 text-center">
-                <div className="text-2xl font-bold text-slate-600 dark:text-slate-400">{todoTasks}</div>
-                <div className="text-sm text-slate-800 dark:text-slate-300">ยังไม่ทำ</div>
-              </div>
-            </div>
+      {/* Task Carousel */}
+      <Card className="relative">
+        <div className="flex items-center justify-between mb-4">
+          <SectionTitle><TimerReset className="h-4 w-4"/> งานที่ใกล้ถึงกำหนด</SectionTitle>
+          <div className="flex items-center gap-2">
+            <GhostButton 
+              onClick={() => setCarouselIndex(i => Math.max(0, i-1))} 
+              disabled={!canScrollUp}
+              className={!canScrollUp ? 'opacity-30' : ''}
+            >
+              <ChevronLeft className="h-4 w-4"/>
+            </GhostButton>
+            <GhostButton 
+              onClick={() => setCarouselIndex(i => Math.min(upcomingTasks.length-3, i+1))} 
+              disabled={!canScrollDown}
+              className={!canScrollDown ? 'opacity-30' : ''}
+            >
+              <ChevronRight className="h-4 w-4"/>
+            </GhostButton>
           </div>
+        </div>
 
-          {/* Right Side - Performance Stats */}
-          <div className="space-y-3 lg:space-y-4 lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="text-lg font-semibold">ประสิทธิภาพโดยรวม</div>
-                <div className="text-sm text-slate-500">จากงานทั้งหมด {totalTasks} งาน</div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{donePercentage}%</div>
-                <div className="text-sm text-slate-500">ความสำเร็จ</div>
-              </div>
-            </div>
-
-            {/* Productivity Score */}
-            <div className="mt-4 h-20 lg:h-56">
-              <div className="flex justify-between items-center mb-2">
-                <div className="text-sm font-medium">ความขยันวันนี้</div>
-                <div className="text-sm font-semibold text-indigo-500">{100 - lazyScore}%</div>
-              </div>
-              <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div className="relative">
+          <div className="flex gap-4 transition-all duration-300 ease-in-out">
+            {visibleTasks.map((task, idx) => {
+              const isFirst = idx === 0 && canScrollUp;
+              const isLast = idx === 2 && canScrollDown;
+              const faded = isFirst || isLast;
+              
+              return (
                 <div 
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
-                  style={{ width: `${100 - lazyScore}%` }}
-                />
-              </div>
-            </div>
+                  key={task.id} 
+                  onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                  className={`flex-1 p-4 rounded-xl border border-slate-200 dark:border-slate-700 
+                    bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm cursor-pointer
+                    transition-all duration-300 hover:scale-[1.02]
+                    ${faded ? 'opacity-40' : ''}`}
+                >
+                  <div className="font-medium truncate mb-2">{task.title}</div>
+                  <div className="text-xs text-slate-500 mb-2">
+                    {task.subjectName || 'ไม่ระบุวิชา'} • {format(new Date(task.dueAt), "d MMM HH:mm", {locale: th})}
+                  </div>
+                  <Progress value={task.progress || 0} />
+                  <div className="mt-2 flex gap-2">
+                    {statusBadge(task.status)}
+                    {priorityBadge(task.priority)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>
 
-      {/* Upcoming Tasks */}
+      {/* Calendar */}
       <Card>
-        <SectionTitle><TimerReset className="h-4 w-4"/> งานที่ใกล้ถึงกำหนด</SectionTitle>
-        {dueSoon.length===0 && <div className="text-sm text-slate-500">ยังไม่มีงานเร่ง รีแล็กซ์ได้หน่อย 🎈</div>}
-        <div className="space-y-3">
-          {dueSoon.map(t=> {
-            const urgency = getUrgencyStyle(t.dueAt);
-            return (
-            <div key={t.id} className="relative p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between overflow-hidden hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-              <div className={`absolute inset-y-0 left-0 w-1.5 ${urgency.gradientClass}`} />
-              <div className="min-w-0 pl-2 flex-grow">
-                <div className="font-medium truncate flex items-center gap-1.5">
-                  {urgency.showFire && <Flame className="h-4 w-4 text-red-500 flex-shrink-0" />}
-                  <span>{t.title}</span>
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {t.subjectName || 'ไม่ระบุวิชา'} • ส่ง {format(new Date(t.dueAt), "d MMM yyyy HH:mm", {locale: th})}
-                </div>
-                <div className={`text-xs font-semibold ${urgency.textColorClass}`}>
-                  {isPast(new Date(t.dueAt)) ? 'เลยกำหนดแล้ว' : timeLeftLabel(t.dueAt)}
-                </div>
-                <div className="mt-2"><Progress value={t.progress||0} /></div>
-              </div>
-              <div className="flex flex-col items-end gap-1 ml-3 flex-shrink-0">
-                {statusBadge(t.status)}
-                {priorityBadge(t.priority)}
-              </div>
+        <div className="flex items-center justify-between mb-4">
+          <SectionTitle><CalendarIcon className="h-4 w-4"/> ปฏิทิน</SectionTitle>
+          <div className="flex items-center gap-2">
+            <GhostButton onClick={() => setCalendarCursor(add(calendarCursor, {months: -1}))}>
+              <ChevronLeft className="h-4 w-4"/>
+            </GhostButton>
+            <div className="text-sm font-medium w-32 text-center">
+              {format(calendarCursor, 'MMMM yyyy', {locale: th})}
             </div>
-            )
+            <GhostButton onClick={() => setCalendarCursor(add(calendarCursor, {months: 1}))}>
+              <ChevronRight className="h-4 w-4"/>
+            </GhostButton>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2">
+          {['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'].map(d => (
+            <div key={d}>{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {calendarDays.map(day => {
+            const dateKey = format(day, 'yyyy-MM-dd');
+            const dayTasks = tasksByDate[dateKey] || [];
+            const isToday = isSameDay(day, new Date());
+            const isCurrentMonth = isSameMonth(day, calendarCursor);
+
+            return (
+              <div
+                key={dateKey}
+                onClick={() => setSelectedDate(day)}
+                className={`
+                  aspect-square p-1.5 rounded-lg cursor-pointer
+                  transition-all duration-200
+                  border border-slate-200/50 dark:border-slate-700/50
+                  backdrop-blur-sm
+                  ${isCurrentMonth 
+                    ? 'bg-white/60 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/60' 
+                    : 'opacity-40'}
+                  ${isToday ? 'ring-2 ring-indigo-400' : ''}
+                `}
+              >
+                <div className={`text-xs mb-1 ${isToday ? 'font-semibold text-indigo-600' : ''}`}>
+                  {format(day, 'd')}
+                </div>
+                <div className="space-y-1">
+                  {dayTasks.slice(0,3).map(task => (
+                    <div
+                      key={task.id}
+                      className="h-1 rounded-full"
+                      style={{backgroundColor: task.subjectColor || '#94a3b8'}}
+                    />
+                  ))}
+                  {dayTasks.length > 3 && (
+                    <div className="text-[10px] text-slate-500">+{dayTasks.length - 3}</div>
+                  )}
+                </div>
+              </div>
+            );
           })}
         </div>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-        <Button onClick={()=>{ setView('tasks'); setSelectedSubject(null) }}><Plus className="h-4 w-4"/> เพิ่มงาน</Button>
-        <GhostButton onClick={()=> setView('calendar')}><CalendarIcon className="h-4 w-4"/> ดูปฏิทิน</GhostButton>
-      </div>
+      {/* Task List Modal for Selected Date */}
+      <AnimatePresence>
+        {selectedDate && (
+          <Modal onClose={() => setSelectedDate(null)}>
+            <div className="text-lg font-semibold mb-4">
+              งานวันที่ {format(selectedDate, 'd MMMM yyyy', {locale: th})}
+            </div>
+            {tasksByDate[format(selectedDate, 'yyyy-MM-dd')]?.length > 0 ? (
+              <div className="space-y-2">
+                {tasksByDate[format(selectedDate, 'yyyy-MM-dd')].map(task => (
+                  <div
+                    key={task.id}
+                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                    className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{task.title}</div>
+                        <div className="text-xs text-slate-500">{task.subjectName}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        {statusBadge(task.status)}
+                        {priorityBadge(task.priority)}
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <Progress value={task.progress || 0} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-slate-500 text-center py-8">
+                ไม่มีงานในวันนี้
+              </div>
+            )}
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
-  )
+  );
 }
 
 function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
