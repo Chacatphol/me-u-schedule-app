@@ -1,6 +1,7 @@
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Button, GhostButton, Progress, Badge } from './ui';
+import { Button, GhostButton, Progress, Badge, Input, Textarea, Select } from './ui.jsx';
 import { Check } from 'lucide-react';
 
 export function TaskEditForm({ task, subjects, onSave, onClose }) {

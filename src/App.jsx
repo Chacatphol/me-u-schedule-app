@@ -9,7 +9,7 @@ import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
 import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
-import TaskEditForm from './components/TaskEditForm';
+import { TaskEditForm } from './components/TaskEditForm';
 
 // --- Data layer ---
 const initialState = {
