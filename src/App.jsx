@@ -269,16 +269,16 @@ export default function App(){
 
   return (
     <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 font-sans">
-      {/* Aurora Background */}
+      {/* Aurora Background - reduce blur on mobile */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 dark:bg-purple-500/10 rounded-full filter blur-3xl animate-blob"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 dark:bg-indigo-500/10 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-pink-400/20 dark:bg-pink-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 dark:bg-purple-500/10 rounded-full filter blur-md md:blur-3xl animate-blob"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 dark:bg-indigo-500/10 rounded-full filter blur-md md:blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-pink-400/20 dark:bg-pink-500/10 rounded-full filter blur-md md:blur-3xl animate-blob animation-delay-4000"></div>
       </div>
       
-      <div className="md:flex pb-24 md:pb-0">
+  <div className="md:flex pb-16 md:pb-0">
         {/* Sidebar for Desktop */}
-        <aside className="hidden md:flex flex-col w-64 bg-white/50 dark:bg-slate-950/50 backdrop-blur-lg border-r border-slate-200/50 dark:border-slate-800/50 p-4">
+  <aside className="hidden md:flex flex-col w-64 bg-white/30 dark:bg-slate-950/30 border-r border-slate-200/50 dark:border-slate-800/50 p-4">
           <div className="flex items-center gap-3 mb-8">
             <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="h-5 w-5" />
@@ -313,7 +313,7 @@ export default function App(){
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8">
+  <main className="flex-1 p-2 md:p-8">
           {/* Mobile Header */}
           <header className="md:hidden flex items-center justify-between mb-4">
              <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export default function App(){
           </header>
 
           <AnimatePresence mode="wait">
-            <motion.div key={view} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.2 }}>
+            <motion.div key={view} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.12 }}>
               {view === 'dashboard' && <Dashboard state={state} tasks={tasks} dueSoon={dueSoon} progressToday={progressToday} lazyScore={lazyScore} setView={setView} setSelectedSubject={setSelectedSubject} />}
               {view === 'tasks' && <TasksView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} selectedSubject={selectedSubject} setSelectedSubject={setSelectedSubject} />}
               {view === 'calendar' && <CalendarView tasks={tasks} subjects={state.subjects} setView={setView} />}
@@ -337,7 +337,7 @@ export default function App(){
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-lg border-t border-slate-200/50 dark:border-slate-800/50 p-2">
+  <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-950/90 border-t border-slate-200/50 dark:border-slate-800/50 p-1">
         <div className="flex items-center justify-around">
           {navItems.map(({ key, label, icon: Icon }) => (
             <a key={key} href="#" onClick={(e) => { e.preventDefault(); setView(key); }}
