@@ -354,7 +354,8 @@ export default function App(){
 }
 
 function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, setSelectedSubject}){
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // start with no date selected to avoid opening the date modal on app load
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // Calendar setup
   const [calendarCursor, setCalendarCursor] = useState(new Date());
