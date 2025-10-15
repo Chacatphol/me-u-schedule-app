@@ -315,7 +315,7 @@ export default function App(){
         </aside>
 
         {/* Main Content */}
-  <main className="flex-1 p-2 md:p-8">
+  <main className="flex-1 px-4 py-6 md:p-8">
           {/* Mobile Header */}
           <header className="md:hidden flex items-center justify-between mb-4">
              <div className="flex items-center gap-3">
@@ -683,8 +683,8 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
       </div>
 
       {/* Floating Action Buttons */}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        {/* Quick Add Task Button - Small urgent task button */}
+      <div className="fixed right-4 bottom-6 flex flex-col items-end gap-3 z-30">
+        {/* Quick Add Task Button - bottom right FAB for mobile */}
         <Button 
           onClick={() => {
             const quickTask = {
@@ -701,20 +701,21 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
             dispatch({ type: 'addTask', payload: quickTask });
             setEditingTask(quickTask);
           }}
-          className="rounded-full w-10 h-10 p-0 bg-rose-500 hover:bg-rose-600"
+          className="rounded-full w-14 h-14 p-0 bg-rose-500 hover:bg-rose-600 flex items-center justify-center"
           title="เพิ่มงานด่วน"
         >
-          <Flame className="h-5 w-5" />
+          <Flame className="h-6 w-6" />
         </Button>
-        
-        {/* Main Action Buttons */}
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-col gap-2 w-max">
           {selectedTasks.size > 0 && (
-            <Button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600">
-              <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size} งาน
+            <Button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600 w-full">
+              <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size}
             </Button>
           )}
-          <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+          <div className="w-full">
+            <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+          </div>
         </div>
       </div>
 
@@ -1180,14 +1181,14 @@ function Modal({children, onClose}){
 
   return createPortal(
     <>
-      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
       <motion.div 
-        initial={{scale: 0.95, opacity:0}} 
-        animate={{scale: 1, opacity:1}} 
-        exit={{scale: 0.95, opacity:0}} 
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[720px] z-50 max-h-[85vh] overflow-y-auto rounded-3xl"
+        initial={{opacity:0, y: 10}} 
+        animate={{opacity:1, y: 0}} 
+        exit={{opacity:0, y: 10}} 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] md:w-[90%] max-w-[720px] z-50 max-h-[90vh] md:max-h-[85vh] overflow-y-auto rounded-lg md:rounded-3xl p-4 md:p-6"
       >
-        <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
+        <Card className="p-4 md:p-6" onClick={(e)=>e.stopPropagation()}>
           {children}
         </Card>
       </motion.div>
