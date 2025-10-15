@@ -776,10 +776,10 @@ function AddTaskButton({subjects, onAdd}){
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">รายวิชา</label>
-                <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
-                  {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
-                </Select>
-              </div>
+                  <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
+                    {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </Select>
+                </div>
               <div>
                 <label className="text-xs">ความสำคัญ</label>
                 <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
