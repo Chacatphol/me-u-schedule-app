@@ -112,5 +112,5 @@ export const Progress = ({value=0}) => (
     </motion.div>
   </div>
 );
-  `}>
+  
 
