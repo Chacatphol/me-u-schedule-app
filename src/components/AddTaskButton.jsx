@@ -4,6 +4,9 @@ import { Button, GhostButton, Input, Textarea, Select } from './ui';
 import { Modal } from './Modal';
 import { AnimatePresence } from 'framer-motion';
 
+// Helper function
+const uid = () => Math.random().toString(36).slice(2,9);
+
 export function AddTaskButton({subjects, onAdd}){
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
