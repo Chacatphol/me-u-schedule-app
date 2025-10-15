@@ -9,6 +9,8 @@ import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
 import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
+import { Modal } from './components/Modal';
+import { AddTaskButton } from './components/AddTaskButton';
 
 // --- Data layer ---
 const initialState = {
@@ -263,29 +265,30 @@ export default function App(){
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { key: 'tasks', label: 'Tasks', icon: ListTodo },
-    { key: 'calendar', label: 'ปฏิทิน', icon: CalendarIcon },
     { key: 'settings', label: 'ตั้งค่า', icon: Layers },
   ];
 
   return (
     <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 font-sans">
-      {/* Aurora Background - reduce blur on mobile */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 dark:bg-purple-500/10 rounded-full filter blur-md md:blur-3xl animate-blob"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 dark:bg-indigo-500/10 rounded-full filter blur-md md:blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-pink-400/20 dark:bg-pink-500/10 rounded-full filter blur-md md:blur-3xl animate-blob animation-delay-4000"></div>
+      {/* Brutalist Design - Raw pattern background */}
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          backgroundSize: '30px 30px'
+        }}></div>
       </div>
       
   <div className="md:flex pb-16 md:pb-0">
-        {/* Sidebar for Desktop */}
-  <aside className="hidden md:flex flex-col w-64 bg-white/30 dark:bg-slate-950/30 border-r border-slate-200/50 dark:border-slate-800/50 p-4">
+        {/* Sidebar for Desktop - Brutalist Style */}
+  <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-black border-r-4 border-black dark:border-white p-4">
           <div className="flex items-center gap-3 mb-8">
-            <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Sparkles className="h-5 w-5" />
-            </motion.div>
+            {/* Raw Logo Design */}
+            <div className="h-12 w-12 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform">
+              <div className="text-2xl font-bold font-mono transform">M</div>
+            </div>
             <div>
-              <div className="text-xl font-bold font-display">ME-U</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Your Schedule</div>
+              <div className="text-2xl font-black font-mono tracking-tighter transform -skew-x-6">ME-U</div>
+              <div className="text-xs uppercase tracking-widest">Your Schedule</div>
             </div>
           </div>
           <nav className="flex-1 space-y-2">
@@ -329,7 +332,6 @@ export default function App(){
             <motion.div key={view} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.12 }}>
               {view === 'dashboard' && <Dashboard state={state} tasks={tasks} dueSoon={dueSoon} progressToday={progressToday} lazyScore={lazyScore} setView={setView} setSelectedSubject={setSelectedSubject} />}
               {view === 'tasks' && <TasksView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} selectedSubject={selectedSubject} setSelectedSubject={setSelectedSubject} />}
-              {view === 'calendar' && <CalendarView tasks={tasks} subjects={state.subjects} setView={setView} />}
               {view === 'settings' && <Settings state={state} dispatch={dispatch} userId={user?.uid} />}
             </motion.div>
           </AnimatePresence>
@@ -353,16 +355,7 @@ export default function App(){
 }
 
 function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, setSelectedSubject}){
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  
-  // Sort tasks by due date for carousel
-  const upcomingTasks = tasks.filter(t => t.dueAt && t.status !== 'done')
-    .sort((a,b) => new Date(a.dueAt) - new Date(b.dueAt));
-  
-  const visibleTasks = upcomingTasks.slice(carouselIndex, carouselIndex + 3);
-  const canScrollUp = carouselIndex > 0;
-  const canScrollDown = carouselIndex + 3 < upcomingTasks.length;
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Calendar setup
   const [calendarCursor, setCalendarCursor] = useState(new Date());
@@ -384,56 +377,71 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
   return (
     <div className="space-y-6">
-      {/* Task Carousel */}
-      <Card className="relative">
+      {/* Day Schedule */}
+      <Card>
         <div className="flex items-center justify-between mb-4">
-          <SectionTitle><TimerReset className="h-4 w-4"/> งานที่ใกล้ถึงกำหนด</SectionTitle>
+          <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
           <div className="flex items-center gap-2">
-            <GhostButton 
-              onClick={() => setCarouselIndex(i => Math.max(0, i-1))} 
-              disabled={!canScrollUp}
-              className={!canScrollUp ? 'opacity-30' : ''}
-            >
+            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate || new Date(), 1))}>
               <ChevronLeft className="h-4 w-4"/>
             </GhostButton>
-            <GhostButton 
-              onClick={() => setCarouselIndex(i => Math.min(upcomingTasks.length-3, i+1))} 
-              disabled={!canScrollDown}
-              className={!canScrollDown ? 'opacity-30' : ''}
-            >
+            <div className="text-sm font-medium w-32 text-center">
+              {format(selectedDate || new Date(), 'EEEE d MMM', {locale: th})}
+            </div>
+            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate || new Date(), 1))}>
               <ChevronRight className="h-4 w-4"/>
             </GhostButton>
           </div>
         </div>
 
-        <div className="relative">
-          <div className="flex gap-4 transition-all duration-300 ease-in-out">
-            {visibleTasks.map((task, idx) => {
-              const isFirst = idx === 0 && canScrollUp;
-              const isLast = idx === 2 && canScrollDown;
-              const faded = isFirst || isLast;
-              
-              return (
-                <div 
-                  key={task.id} 
-                  onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                  className={`flex-1 p-4 rounded-xl border border-slate-200 dark:border-slate-700 
-                    bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm cursor-pointer
-                    transition-all duration-300 hover:scale-[1.02]
-                    ${faded ? 'opacity-40' : ''}`}
-                >
-                  <div className="font-medium truncate mb-2">{task.title}</div>
-                  <div className="text-xs text-slate-500 mb-2">
-                    {task.subjectName || 'ไม่ระบุวิชา'} • {format(new Date(task.dueAt), "d MMM HH:mm", {locale: th})}
-                  </div>
-                  <Progress value={task.progress || 0} />
-                  <div className="mt-2 flex gap-2">
-                    {statusBadge(task.status)}
-                    {priorityBadge(task.priority)}
-                  </div>
+        <div className="relative min-h-[32rem]">
+          {/* Time Guide Lines */}
+          <div className="absolute inset-0 flex flex-col">
+            {Array.from({length: 24}).map((_, i) => (
+              <div key={i} className="flex-1 border-t border-slate-200/30 dark:border-slate-700/30">
+                <div className="absolute -mt-3 -ml-2 text-xs text-slate-400">
+                  {String(i).padStart(2, '0')}:00
                 </div>
-              );
-            })}
+              </div>
+            ))}
+          </div>
+
+          {/* Tasks */}
+          <div className="absolute inset-x-12 inset-y-0">
+            {tasks
+              .filter(t => t.dueAt && isSameDay(new Date(t.dueAt), selectedDate || new Date()))
+              .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
+              .map(task => {
+                const start = new Date(task.dueAt);
+                const minutes = task.duration || 60; // Default 1 hour if no duration
+                const heightPercent = (minutes / 1440) * 100; // 1440 minutes in a day
+                const topPercent = (start.getHours() * 60 + start.getMinutes()) / 1440 * 100;
+                
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                    className="absolute w-full rounded-lg border border-slate-200/50 dark:border-slate-700/50 
+                      cursor-pointer transition-all hover:scale-[1.02] overflow-hidden"
+                    style={{
+                      top: `${topPercent}%`,
+                      height: `${heightPercent}%`,
+                      backgroundColor: hexToRgba(task.subjectColor || '#6366f1', 0.1),
+                      borderColor: task.subjectColor || '#6366f1'
+                    }}
+                  >
+                    <div className="p-2">
+                      <div className="font-medium truncate text-sm">{task.title}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {format(start, 'HH:mm')} - {format(addMinutes(start, minutes), 'HH:mm')}
+                      </div>
+                      <div className="mt-1 flex gap-1">
+                        {statusBadge(task.status)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </Card>
@@ -551,8 +559,13 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
   const nameRef = useRef(null);
   const colorRef = useRef(null);
   const [isAddingSubject, setAddingSubject] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [editingTask, setEditingTask] = useState(null);
 
-  const subjectTasksCount = useMemo(() => Object.fromEntries(state.subjects.map(s => [s.id, tasks.filter(t => t.subjectId === s.id).length])), [tasks, state.subjects]);
+  const subjectTasksCount = useMemo(() => 
+    Object.fromEntries(state.subjects.map(s => [s.id, tasks.filter(t => t.subjectId === s.id).length])), 
+    [tasks, state.subjects]
+  );
 
   const addSubject = ()=>{
     const name = nameRef.current.value.trim();
@@ -577,51 +590,73 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
     if (!selectedSubject) return;
     if (confirm('ลบรายวิชานี้และงานทั้งหมด?')) {
       dispatch({ type: 'deleteSubject', id: selectedSubject });
-      setSelectedSubject(null); // Clear selection after deletion
+      setSelectedSubject(null);
     }
-  }
+  };
+
+  const toggleTaskSelection = (taskId) => {
+    const newSelected = new Set(selectedTasks);
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId);
+    } else {
+      newSelected.add(taskId);
+    }
+    setSelectedTasks(newSelected);
+  };
+
+  const handleDeleteSelected = () => {
+    if (confirm(`ลบงานที่เลือก ${selectedTasks.size} งาน?`)) {
+      selectedTasks.forEach(id => dispatch({ type: 'deleteTask', id }));
+      setSelectedTasks(new Set());
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold font-display">Tasks</h1>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input placeholder="ค้นหางาน..." value={query} onChange={e => setQuery(e.target.value)} className="pl-9 w-full" />
-          </div>
-          <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+    <div className="space-y-6 pb-24">
+      {/* Header with Search */}
+      <div className="sticky top-0 z-20 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-xl p-4 -mx-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input 
+            placeholder="ค้นหางาน..." 
+            value={query} 
+            onChange={e => setQuery(e.target.value)} 
+            className="pl-9 w-full shadow-lg"
+          />
         </div>
       </div>
 
-      {/* Subject Filters & Management */}
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <Filter className="h-4 w-4" />
-            <span>Filter by Subject</span>
-          </div>
-          <GhostButton onClick={() => setAddingSubject(true)} className="!px-2"><Plus className="h-4 w-4" /></GhostButton>
-        </div>
+      {/* Subject Filters */}
+      <div className="sticky top-20 z-10 -mx-4 px-4 py-2 bg-slate-100/60 dark:bg-slate-950/60 backdrop-blur-xl">
         <div className="flex flex-wrap gap-2">
-          <GhostButton onClick={() => setSelectedSubject(null)} className={!selectedSubject ? 'bg-white dark:bg-slate-800' : ''}>All Subjects</GhostButton>
+          <GhostButton 
+            onClick={() => setSelectedSubject(null)} 
+            className={`transition-all ${!selectedSubject ? 'bg-white/80 dark:bg-slate-800/80 shadow-lg scale-110' : ''}`}
+          >
+            ทั้งหมด
+          </GhostButton>
           {state.subjects.map(s => (
-            <GhostButton key={s.id} onClick={() => setSelectedSubject(s.id)} className={`relative group ${selectedSubject === s.id ? 'bg-white dark:bg-slate-800' : ''}`}>
+            <GhostButton 
+              key={s.id} 
+              onClick={() => setSelectedSubject(s.id)} 
+              className={`relative transition-all
+                ${selectedSubject === s.id ? 'bg-white/80 dark:bg-slate-800/80 shadow-lg scale-110' : ''}
+                ${selectedSubject === s.id ? 'after:absolute after:left-1/2 after:-bottom-6 after:w-4 after:h-6 after:bg-gradient-to-b after:from-white/80 after:to-transparent dark:after:from-slate-800/80 after:-translate-x-1/2' : ''}
+              `}
+            >
               <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
               {s.name}
               <Badge className="ml-1 !px-1.5">{subjectTasksCount[s.id] || 0}</Badge>
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-slate-800 text-white px-2 py-1 rounded-md text-xs">
-                <button onClick={(e) => { e.stopPropagation(); handleEditSubject(s.id); }} className="p-1 hover:bg-slate-700 rounded-md"><Pencil className="h-3 w-3" /></button>
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(s.id); }} className="p-1 hover:bg-slate-700 rounded-md"><Trash2 className="h-3 w-3" /></button>
-              </div>
             </GhostButton>
           ))}
+          <GhostButton onClick={() => setAddingSubject(true)} className="!px-2 ml-auto">
+            <Plus className="h-4 w-4" />
+          </GhostButton>
         </div>
-      </Card>
+      </div>
 
       {/* Task List */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         <AnimatePresence>
           {filteredTasks.map(t=> (
             <motion.div
@@ -632,17 +667,61 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3 }}
             >
-              <TaskItem task={t} onUpdate={(p)=>dispatch({type:'updateTask', payload:p})} onDelete={(id)=>dispatch({type:'deleteTask', id})} />
+              <TaskItem 
+                task={t}
+                selected={selectedTasks.has(t.id)}
+                onSelect={() => toggleTaskSelection(t.id)}
+                onEdit={() => setEditingTask(t)}
+              />
             </motion.div>
           ))}
         </AnimatePresence>
-        {filteredTasks.length === 0 && <div className="text-center text-slate-500 py-10">ไม่มีงานที่ตรงกับเงื่อนไข</div>}
+        {filteredTasks.length === 0 && 
+          <div className="text-center text-slate-500 py-10">ไม่มีงานที่ตรงกับเงื่อนไข</div>
+        }
       </div>
 
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        {/* Quick Add Task Button - Small urgent task button */}
+        <Button 
+          onClick={() => {
+            const quickTask = {
+              id: uid(),
+              title: "งานด่วน",
+              priority: "high",
+              status: "todo",
+              progress: 0,
+              category: "เรียน",
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              subjectId: state.subjects[0]?.id
+            };
+            dispatch({ type: 'addTask', payload: quickTask });
+            setEditingTask(quickTask);
+          }}
+          className="rounded-full w-10 h-10 p-0 bg-rose-500 hover:bg-rose-600"
+          title="เพิ่มงานด่วน"
+        >
+          <Flame className="h-5 w-5" />
+        </Button>
+        
+        {/* Main Action Buttons */}
+        <div className="flex items-center gap-2">
+          {selectedTasks.size > 0 && (
+            <Button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600">
+              <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size} งาน
+            </Button>
+          )}
+          <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+        </div>
+      </div>
+
+      {/* Modals */}
       <AnimatePresence>
         {isAddingSubject && (
           <Modal onClose={() => setAddingSubject(false)}>
-            <div className="text-lg font-semibold mb-2">เพิ่มรายวิชาใหม่</div>
+            <div className="text-lg font-semibold mb-4">เพิ่มรายวิชาใหม่</div>
             <div className="space-y-3">
               <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} />
               <div className="flex items-center gap-2">
@@ -650,6 +729,19 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
                 <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4" /> เพิ่ม</Button>
               </div>
             </div>
+          </Modal>
+        )}
+        {editingTask && (
+          <Modal onClose={() => setEditingTask(null)}>
+            <TaskEditForm 
+              task={editingTask} 
+              subjects={state.subjects}
+              onSave={(payload) => {
+                dispatch({ type: 'updateTask', payload });
+                setEditingTask(null);
+              }}
+              onClose={() => setEditingTask(null)}
+            />
           </Modal>
         )}
       </AnimatePresence>
@@ -679,10 +771,11 @@ function AddTaskButton({subjects, onAdd}){
       <AnimatePresence>
         {open && (
           <Modal onClose={()=>setOpen(false)}>
-            <div className="text-lg font-semibold mb-2">เพิ่มงานใหม่</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs">รายวิชา</label>
+            <div className="text-lg font-semibold mb-4">เพิ่มงานใหม่</div>
+            <div className="overflow-y-auto max-h-[calc(85vh-8rem)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">รายวิชา</label>
                 <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
                   {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
                 </Select>
@@ -968,104 +1061,9 @@ function ReminderPicker({value, onChange}){
   )
 }
 
-// Modal สำหรับแสดงรายการงานในวันที่เลือกจากปฏิทิน
-function TaskModal({ date, tasks, onClose }) {
-  // กรองงานเฉพาะวันที่ถูกเลือก
-  const tasksForDate = tasks.filter(task => task.dueAt && isSameDay(new Date(task.dueAt), date));
 
-  return (
-    <Modal onClose={onClose}>
-      <div className="text-lg font-semibold mb-4">
-        งานวันที่ {format(date, 'd MMMM yyyy', { locale: th })}
-      </div>
-      {tasksForDate.length > 0 ? (
-        <ul className="space-y-2">
-          {tasksForDate.map(task => (
-            <li key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
-              <div>
-                <div className="font-medium">{task.title}</div>
-                {task.subjectName && <div className="text-xs text-slate-500">{task.subjectName}</div>}
-              </div>
-              {statusBadge(task.status)}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-slate-500">ไม่มีงานในวันนี้</p>
-      )}
-      <div className="mt-4 flex justify-end">
-        <Button onClick={onClose}>ปิด</Button>
-      </div>
-    </Modal>
-  );
-}
 
-function CalendarView({tasks, subjects, setView}){
-  const [cursor, setCursor] = useState(new Date())
-  // State สำหรับเก็บวันที่ที่ผู้ใช้คลิก เพื่อแสดง Modal
-  const [selectedDate, setSelectedDate] = useState(null)
 
-  const start = startOfWeek(startOfMonth(cursor), {weekStartsOn:1})
-  const end = endOfWeek(endOfMonth(cursor), {weekStartsOn:1})
-  const days = []
-  for(let d=new Date(start); d<=end; d=add(d,{days:1})) days.push(new Date(d))
-
-  const byDay = tasks.reduce((acc,t)=>{
-    if(!t.dueAt) return acc
-    const k = format(new Date(t.dueAt), 'yyyy-MM-dd')
-    acc[k] = acc[k] || []
-    acc[k].push(t)
-    return acc
-  }, {})
-
-  return (
-    <div className="space-y-3">
-      <Card>
-        <div className="flex items-center justify-between">
-          <SectionTitle><CalendarIcon className="h-4 w-4"/> ปฏิทิน</SectionTitle>
-          <div className="flex items-center gap-2">
-            <GhostButton onClick={()=> setCursor(add(cursor,{months:-1}))}><ChevronLeft className="h-4 w-4"/></GhostButton>
-            <div className="text-sm font-medium w-40 text-center">{format(cursor, 'MMMM yyyy', {locale: th})}</div>
-            <GhostButton onClick={()=> setCursor(add(cursor,{months:1}))}><ChevronRight className="h-4 w-4"/></GhostButton>
-          </div>
-        </div>
-      </Card>
-      <Card>
-        <div className="overflow-x-auto pb-2">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2 min-w-[21rem]">
-            {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(d=>(<div key={d}>{d}</div>))}
-          </div>
-          <div className="grid grid-cols-7 gap-1 min-w-[21rem]">
-          {days.map(d=>{
-            const key = format(d,'yyyy-MM-dd')
-            const items = byDay[key]||[]
-            return (
-              // ส่วนของ Cell ในแต่ละวัน
-              <div key={key} onClick={() => setSelectedDate(d)} className={`min-h-28 rounded-2xl border p-2 shadow-sm ${isSameMonth(d,cursor)? 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30' : 'opacity-40 border-dashed'} cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50`}>
-                <div className={`text-xs mb-1 ${isSameDay(d,new Date())? 'font-semibold text-indigo-600' : ''}`}>{format(d,'d')}</div>
-                <div className="space-y-1">
-                  {items.slice(0,2).map(b=> (
-                    <div key={b.id} className="text-[11px] px-2 py-1 rounded-lg border truncate" style={{borderColor: b.subjectColor||'#e2e8f0'}}>
-                      {b.title}
-                    </div>
-                  ))}
-                  {items.length>2 && <div className="text-[11px] text-slate-500 mt-1">+{items.length-2} งาน</div>}
-                </div>
-              </div>
-            )
-          })}
-          </div>
-        </div>
-      </Card>
-      {/* ย้าย AnimatePresence มาไว้ตรงนี้ เพื่อให้ Modal แสดงผลครอบคลุมทั้งหน้าจอ */}
-      <AnimatePresence>
-        {selectedDate && (
-          <TaskModal date={selectedDate} tasks={tasks} onClose={() => setSelectedDate(null)} />
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
 
 function Settings({state, dispatch, userId}){
   const fileRef = useRef(null)
@@ -1181,7 +1179,12 @@ function Modal({children, onClose}){
   return createPortal(
     <>
       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <motion.div initial={{y:30, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="fixed inset-x-0 bottom-0 md:bottom-auto md:top-20 mx-auto w-full md:w-[95%] md:max-w-[720px] z-50 max-h-[90vh] md:max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-3xl">
+      <motion.div 
+        initial={{scale: 0.95, opacity:0}} 
+        animate={{scale: 1, opacity:1}} 
+        exit={{scale: 0.95, opacity:0}} 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[720px] z-50 max-h-[85vh] overflow-y-auto rounded-3xl"
+      >
         <Card className="p-5" onClick={(e)=>e.stopPropagation()}>
           {children}
         </Card>
