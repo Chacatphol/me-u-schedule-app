@@ -376,76 +376,33 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
   return (
     <div className="space-y-6">
-      {/* Day Schedule */}
+      {/* Urgent / Due Soon (top column) */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
-          <div className="flex items-center gap-2">
-            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate || new Date(), 1))}>
-              <ChevronLeft className="h-4 w-4"/>
-            </GhostButton>
-            <div className="text-sm font-medium w-32 text-center">
-              {format(selectedDate || new Date(), 'EEEE d MMM', {locale: th})}
-            </div>
-            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate || new Date(), 1))}>
-              <ChevronRight className="h-4 w-4"/>
-            </GhostButton>
-          </div>
+          <SectionTitle><Flame className="h-4 w-4"/> งานที่ด่วนใกล้ถึง</SectionTitle>
+          <div className="text-sm text-slate-500">จัดเรียงตามกำหนดส่ง</div>
         </div>
 
-        <div className="relative min-h-[32rem]">
-          {/* Time Guide Lines */}
-          <div className="absolute inset-0 flex flex-col">
-            {Array.from({length: 24}).map((_, i) => (
-              <div key={i} className="flex-1 border-t border-slate-200/30 dark:border-slate-700/30">
-                <div className="absolute -mt-3 -ml-2 text-xs text-slate-400">
-                  {String(i).padStart(2, '0')}:00
-                </div>
+        <div className="space-y-3">
+          {dueSoon.length > 0 ? dueSoon.map(task => (
+            <div key={task.id} className="p-3 rounded-lg bg-white/60 dark:bg-slate-800/50 flex items-start justify-between">
+              <div className="min-w-0">
+                <div className="font-medium truncate">{task.title}</div>
+                <div className="text-xs text-slate-500">{task.subjectName || 'ไม่มีวิชา'} • {task.dueAt ? format(new Date(task.dueAt), "d MMM HH:mm", {locale: th}) : 'ไม่ระบุเวลา'}</div>
+                <div className="mt-2"><Progress value={task.progress||0} /></div>
               </div>
-            ))}
-          </div>
-
-          {/* Tasks */}
-          <div className="absolute inset-x-12 inset-y-0">
-            {tasks
-              .filter(t => t.dueAt && isSameDay(new Date(t.dueAt), selectedDate || new Date()))
-              .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
-              .map(task => {
-                const start = new Date(task.dueAt);
-                const minutes = task.duration || 60; // Default 1 hour if no duration
-                const heightPercent = (minutes / 1440) * 100; // 1440 minutes in a day
-                const topPercent = (start.getHours() * 60 + start.getMinutes()) / 1440 * 100;
-                
-                return (
-                  <div
-                    key={task.id}
-                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                    className="absolute w-full rounded-lg border border-slate-200/50 dark:border-slate-700/50 
-                      cursor-pointer transition-all hover:scale-[1.02] overflow-hidden"
-                    style={{
-                      top: `${topPercent}%`,
-                      height: `${heightPercent}%`,
-                      backgroundColor: hexToRgba(task.subjectColor || '#6366f1', 0.1),
-                      borderColor: task.subjectColor || '#6366f1'
-                    }}
-                  >
-                    <div className="p-2">
-                      <div className="font-medium truncate text-sm">{task.title}</div>
-                      <div className="text-xs text-slate-500 truncate">
-                        {format(start, 'HH:mm')} - {format(addMinutes(start, minutes), 'HH:mm')}
-                      </div>
-                      <div className="mt-1 flex gap-1">
-                        {statusBadge(task.status)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
+              <div className="ml-3 flex flex-col items-end gap-2">
+                {priorityBadge(task.priority)}
+                {statusBadge(task.status)}
+              </div>
+            </div>
+          )) : (
+            <div className="text-slate-500 text-center py-6">ไม่มีงานด่วนใกล้ถึง</div>
+          )}
         </div>
       </Card>
 
-      {/* Calendar */}
+      {/* Calendar (middle column) */}
       <Card>
         <div className="flex items-center justify-between mb-4">
           <SectionTitle><CalendarIcon className="h-4 w-4"/> ปฏิทิน</SectionTitle>
@@ -508,6 +465,75 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
               </div>
             );
           })}
+        </div>
+      </Card>
+
+      {/* Day Schedule (bottom column) */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
+          <div className="flex items-center gap-2">
+            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate || new Date(), 1))}>
+              <ChevronLeft className="h-4 w-4"/>
+            </GhostButton>
+            <div className="text-sm font-medium w-32 text-center">
+              {format(selectedDate || new Date(), 'EEEE d MMM', {locale: th})}
+            </div>
+            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate || new Date(), 1))}>
+              <ChevronRight className="h-4 w-4"/>
+            </GhostButton>
+          </div>
+        </div>
+
+        <div className="relative min-h-[32rem]">
+          {/* Time Guide Lines */}
+          <div className="absolute inset-0 flex flex-col">
+            {Array.from({length: 24}).map((_, i) => (
+              <div key={i} className="flex-1 border-t border-slate-200/30 dark:border-slate-700/30">
+                <div className="absolute -mt-3 -ml-2 text-xs text-slate-400">
+                  {String(i).padStart(2, '0')}:00
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tasks for selectedDate */}
+          <div className="absolute inset-x-12 inset-y-0">
+            {tasks
+              .filter(t => t.dueAt && isSameDay(new Date(t.dueAt), selectedDate || new Date()))
+              .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
+              .map(task => {
+                const start = new Date(task.dueAt);
+                const minutes = task.duration || 60; // Default 1 hour if no duration
+                const heightPercent = (minutes / 1440) * 100; // 1440 minutes in a day
+                const topPercent = (start.getHours() * 60 + start.getMinutes()) / 1440 * 100;
+                
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                    className="absolute w-full rounded-lg border border-slate-200/50 dark:border-slate-700/50 
+                      cursor-pointer transition-all hover:scale-[1.02] overflow-hidden"
+                    style={{
+                      top: `${topPercent}%`,
+                      height: `${heightPercent}%`,
+                      backgroundColor: hexToRgba(task.subjectColor || '#6366f1', 0.1),
+                      borderColor: task.subjectColor || '#6366f1'
+                    }}
+                  >
+                    <div className="p-2">
+                      <div className="font-medium truncate text-sm">{task.title}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {format(start, 'HH:mm')} - {format(addMinutes(start, minutes), 'HH:mm')}
+                      </div>
+                      <div className="mt-1 flex gap-1">
+                        {statusBadge(task.status)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       </Card>
 
@@ -684,29 +710,6 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
 
       {/* Floating Action Buttons */}
       <div className="fixed right-4 bottom-6 flex flex-col items-end gap-3 z-30">
-        {/* Quick Add Task Button - bottom right FAB for mobile */}
-        <Button 
-          onClick={() => {
-            const quickTask = {
-              id: uid(),
-              title: "งานด่วน",
-              priority: "high",
-              status: "todo",
-              progress: 0,
-              category: "เรียน",
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              subjectId: state.subjects[0]?.id
-            };
-            dispatch({ type: 'addTask', payload: quickTask });
-            setEditingTask(quickTask);
-          }}
-          className="rounded-full w-14 h-14 p-0 bg-rose-500 hover:bg-rose-600 flex items-center justify-center"
-          title="เพิ่มงานด่วน"
-        >
-          <Flame className="h-6 w-6" />
-        </Button>
-
         <div className="flex flex-col gap-2 w-max">
           {selectedTasks.size > 0 && (
             <Button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600 w-full">
@@ -1181,16 +1184,26 @@ function Modal({children, onClose}){
 
   return createPortal(
     <>
-      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <motion.div 
-        initial={{opacity:0, y: 10}} 
-        animate={{opacity:1, y: 0}} 
-        exit={{opacity:0, y: 10}} 
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] md:w-[90%] max-w-[720px] z-50 max-h-[90vh] md:max-h-[85vh] overflow-y-auto rounded-lg md:rounded-3xl p-4 md:p-6"
+      <motion.div
+        initial={{opacity:0}}
+        animate={{opacity:1}}
+        exit={{opacity:0}}
+        className="fixed inset-0 bg-black/45 backdrop-blur-sm z-40"
+        onClick={onClose}
+      />
+
+      <motion.div
+        initial={{opacity:0, scale:0.98, y: 6}}
+        animate={{opacity:1, scale:1, y:0}}
+        exit={{opacity:0, scale:0.98, y:6}}
+        transition={{ duration: 0.18 }}
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[80%] md:w-[720px] z-50 max-h-[92vh] overflow-y-auto"
       >
-        <Card className="p-4 md:p-6" onClick={(e)=>e.stopPropagation()}>
-          {children}
-        </Card>
+        <div onClick={(e)=>e.stopPropagation()}>
+          <Card className="p-4 md:p-6 rounded-2xl">
+            {children}
+          </Card>
+        </div>
       </motion.div>
     </>,
     document.body
