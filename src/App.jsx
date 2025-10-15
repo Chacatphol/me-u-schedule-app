@@ -498,7 +498,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           </div>
 
           {/* Tasks for selectedDate */}
-          <div className="absolute inset-x-12 inset-y-0">
+          <div className="centered relative h-full overflow-y-scroll">
             {tasks
               .filter(t => t.dueAt && isSameDay(new Date(t.dueAt), selectedDate || new Date()))
               .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
