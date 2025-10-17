@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from "recharts";
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu, Circle, Minus, Flag, Clock, Archive, X } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu, Circle, Minus, Flag, Clock } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
@@ -223,22 +223,12 @@ export default function App(){
     if(query.trim()) arr = arr.filter(t=> (t.title+" "+(t.detail||'')).toLowerCase().includes(query.toLowerCase()))
     // sort: with due first ascending, then without due, then status
     arr = [...arr].sort((a, b) => {
-      // Move done tasks to the bottom
-      if (a.status === 'done' && b.status !== 'done') return 1;
-      if (a.status !== 'done' && b.status === 'done') return -1;
-
       if (a.dueAt && b.dueAt) return new Date(a.dueAt) - new Date(b.dueAt);
       if (a.dueAt) return -1; // a has due date, b doesn't, a comes first
       if (b.dueAt) return 1;  // b has due date, a doesn't, b comes first
       return new Date(b.createdAt) - new Date(a.createdAt); // both have no due date, sort by creation
     });
-    // Filter out archived tasks
-    return arr.filter(t => {
-      if (t.status === 'done' && t.updatedAt) {
-        return differenceInHours(new Date(), new Date(t.updatedAt)) < 1;
-      }
-      return true;
-    });
+    return arr
   },[tasks, selectedSubject, query])
 
   // request notification permission once
@@ -249,16 +239,6 @@ export default function App(){
       return ()=>clearTimeout(h)
     }
   },[])
-
-  const archivedTasks = useMemo(() => tasks.filter(t => 
-    t.status === 'done' && t.updatedAt && differenceInHours(new Date(), new Date(t.updatedAt)) >= 1
-  ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)), [tasks]);
-
-  const navItems = [
-    { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { key: 'tasks', label: 'Tasks', icon: ListTodo },
-    { key: 'settings', label: 'ตั้งค่า', icon: Layers },
-  ];
 
   // schedule reminders for tasks when added/updated
   useEffect(()=>{ tasks.forEach(scheduleReminder) }, [tasks])
@@ -271,9 +251,11 @@ export default function App(){
     return <LoginScreen />;
   }
 
-  const handleLogout = () => {
-    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) signOut(auth);
-  }
+  const navItems = [
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { key: 'tasks', label: 'Tasks', icon: ListTodo },
+    { key: 'settings', label: 'ตั้งค่า', icon: Layers },
+  ];
 
   return (
     <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 font-sans">
@@ -310,6 +292,7 @@ export default function App(){
                 </div>
               )}
               <span className="truncate flex-1 font-medium">{user.displayName || user.email}</span>
+              <GhostButton onClick={() => signOut(auth)} className="!px-2"><LogOut className="h-4 w-4" /></GhostButton>
             </div>
           </div>
         </aside>
@@ -319,17 +302,30 @@ export default function App(){
           {/* Mobile Header */}
           <header className="md:hidden flex items-center justify-between mb-4">
             <img src="/logo.svg" alt="FlowO Logo" className="h-8" />
+            <GhostButton onClick={() => signOut(auth)} className="!px-2"><LogOut className="h-4 w-4" /></GhostButton>
           </header>
 
           <AnimatePresence mode="wait">
             <motion.div key={view} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.12 }}>
               {view === 'dashboard' && <Dashboard state={state} tasks={tasks} dueSoon={dueSoon} progressToday={progressToday} lazyScore={lazyScore} setView={setView} setSelectedSubject={setSelectedSubject} />}
               {view === 'tasks' && <TasksView state={state} dispatch={dispatch} tasks={tasks} filteredTasks={filteredTasks} setQuery={setQuery} query={query} selectedSubject={selectedSubject} setSelectedSubject={setSelectedSubject} />}
-              {view === 'settings' && <Settings state={state} dispatch={dispatch} userId={user?.uid} onLogout={handleLogout} setView={setView} />}
-              {view === 'history' && <HistoryView tasks={archivedTasks} dispatch={dispatch} />}
+              {view === 'settings' && <Settings state={state} dispatch={dispatch} userId={user?.uid} />}
             </motion.div>
           </AnimatePresence>
         </main>
+
+      {/* Floating Action Buttons for Tasks View */}
+      {view === 'tasks' && (
+        <div className="fixed right-4 bottom-20 md:bottom-6 flex flex-col items-end gap-3 z-30">
+          <div className="flex flex-col gap-2 w-max">
+            {/* This part needs state from TasksView, so we'll need to lift state up or pass it down */}
+            {/* For now, let's just move the AddTaskButton */}
+            <div className="w-full">
+              <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -656,7 +652,6 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
 function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, selectedSubject, setSelectedSubject}){
   const [selectedTasks, setSelectedTasks] = useState(new Set());
-  const [deleteMode, setDeleteMode] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   const subjectTasksCount = useMemo(() => 
@@ -694,17 +689,11 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
   };
 
   const handleDeleteSelected = () => {
-    if (selectedTasks.size === 0) {
-      setDeleteMode(false);
-      return;
-    }
-    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedTasks.size} งานที่เลือก?`)) {
+    if (confirm(`ลบงานที่เลือก ${selectedTasks.size} งาน?`)) {
       selectedTasks.forEach(id => dispatch({ type: 'deleteTask', id }));
       setSelectedTasks(new Set());
-      setDeleteMode(false);
     }
   };
-
 
   return (
     <div className="space-y-6 pb-24">
@@ -761,11 +750,11 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
             >
               <TaskItem 
                 task={t}
-                isInDeleteMode={deleteMode}
-                isSelected={selectedTasks.has(t.id)}
-                onToggleSelect={() => toggleTaskSelection(t.id)}
+                selected={selectedTasks.has(t.id)}
+                onSelect={() => toggleTaskSelection(t.id)}
+                onEdit={() => setEditingTask(t)}
                 onUpdate={(payload) => dispatch({ type: 'updateTask', payload })}
-                onView={() => setEditingTask(t)}
+                onDelete={(id) => dispatch({ type: 'deleteTask', id })}
               />
             </motion.div>
           ))}
@@ -775,32 +764,19 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
         }
       </div>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed left-4 right-4 bottom-20 md:bottom-6 flex items-center justify-between gap-3 z-30">
-        {deleteMode ? (
-          <Button onClick={() => { setDeleteMode(false); setSelectedTasks(new Set()); }} className="bg-slate-500 hover:bg-slate-600">
-            <X className="h-4 w-4"/> ยกเลิก
-          </Button>
-        ) : (
-          <Button onClick={() => setDeleteMode(true)} className="bg-rose-600 hover:bg-rose-700">
-            <Trash2 className="h-4 w-4"/>
-          </Button>
-        )}
-        
-        {deleteMode ? (
-          <Button onClick={handleDeleteSelected} className="bg-rose-600 hover:bg-rose-700" disabled={selectedTasks.size === 0}>
-            <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size} รายการ
-          </Button>
-        ) : (
-          <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
-        )}
-      </div>
-
       {/* Modals */}
       <AnimatePresence>
         {editingTask && (
           <Modal onClose={() => setEditingTask(null)}>
-            <TaskDetailView task={editingTask} onUpdate={(payload) => dispatch({ type: 'updateTask', payload })} onClose={() => setEditingTask(null)} subjects={state.subjects} />
+            <TaskEditForm 
+              task={editingTask} 
+              subjects={state.subjects}
+              onSave={(payload) => {
+                dispatch({ type: 'updateTask', payload });
+                setEditingTask(null);
+              }}
+              onClose={() => setEditingTask(null)}
+            />
           </Modal>
         )}
       </AnimatePresence>
@@ -934,7 +910,17 @@ function AddTaskButton({subjects, onAdd}){
   )
 }
 
-function TaskItem({task, onUpdate, onView, isInDeleteMode, isSelected, onToggleSelect}){
+function TaskItem({task, onUpdate, onDelete}){
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
+  useEffect(()=> setForm({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : '', detail: task.detail || '', link: task.link || ''}), [task])
+
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const save = ()=>{
+    const payload = {...form, startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
+    onUpdate(payload)
+    setEditing(false)
+  }
 
   const handleStatusChange = (e) => {
     e.stopPropagation(); // หยุดไม่ให้ event ส่งผลกระทบกับส่วนอื่น
@@ -942,37 +928,22 @@ function TaskItem({task, onUpdate, onView, isInDeleteMode, isSelected, onToggleS
     const currentIndex = statuses.indexOf(task.status);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
 
-    // Allow un-doing 'done' status within 1 hour
-    if (task.status === 'done' && task.updatedAt) {
-      if (differenceInHours(new Date(), new Date(task.updatedAt)) >= 1) {
-        alert("ไม่สามารถเปลี่ยนสถานะงานที่เสร็จสิ้นไปแล้วเกิน 1 ชั่วโมงได้");
-        return;
-      }
-    }
-
-    onUpdate({ ...task, status: nextStatus, updatedAt: new Date().toISOString() });
+    onUpdate({ ...task, status: nextStatus });
   };
 
   // สร้างคลาสสำหรับไล่เฉดสีตามสถานะของงาน
   const statusGradientClass =
     task.status === 'done'
-      ? 'opacity-60 bg-gradient-to-l from-emerald-400/10' // สีเขียวสำหรับ "เสร็จแล้ว"
+      ? 'bg-gradient-to-l from-emerald-400/10' // สีเขียวสำหรับ "เสร็จแล้ว"
       : task.status === 'doing'
       ? 'bg-gradient-to-l from-amber-400/10' // สีส้มสำหรับ "กำลังทำ"
       : ''; // ไม่มีสีสำหรับ "ยังไม่ทำ"
 
+  const needsTruncationButton = task.detail && task.detail.length > 150; // Heuristic for showing "View More"
   const isEvent = task.taskType === 'event';
 
-  const handleClick = () => {
-    if (isInDeleteMode) {
-      onToggleSelect();
-    } else {
-      onView();
-    }
-  };
-
   return (
-    <Card onClick={handleClick} className={`${statusGradientClass} cursor-pointer transition-all ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}>
+    <Card className={statusGradientClass}>
       <div className="flex items-start gap-4">
         {/* Status Toggle Button */}
         <button onClick={handleStatusChange} className="flex-shrink-0 mt-1 transition-transform active:scale-90" title="คลิกเพื่อเปลี่ยนสถานะ">
@@ -1008,12 +979,75 @@ function TaskItem({task, onUpdate, onView, isInDeleteMode, isSelected, onToggleS
             </div>
           </div>
         </div>
-        {isInDeleteMode && (
-          <div className="absolute top-2 right-2">
-            <CheckCircle className={`h-6 w-6 transition-all ${isSelected ? 'text-indigo-500 scale-100' : 'text-slate-300 dark:text-slate-600 scale-0'}`} />
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 ml-auto">
+          <GhostButton onClick={()=> setEditing(true)}><Pencil className="h-4 w-4"/></GhostButton>
+          <GhostButton onClick={()=> onDelete(task.id)}><Trash2 className="h-4 w-4"/></GhostButton>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {editing && (
+          <Modal onClose={()=>setEditing(false)}>
+            <div className="px-2 mb-4">
+              <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
+              <div className="flex gap-2">
+                <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
+                <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
+              </div>
+            </div>
+            <div className="text-lg font-semibold mb-2">อัปเดตงาน</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs">สถานะ</label>
+                <div className="custom-select-wrapper">
+                  <Select value={form.status} onChange={e=>setForm({...form, status: e.target.value})}>
+                    <option value="todo">ยังไม่ทำ</option><option value="doing">กำลังทำ</option><option value="done">เสร็จแล้ว</option>
+                  </Select></div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">ชื่องาน</label>
+                <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} className="w-full" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">รายละเอียด</label>
+                <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
+              </div>
+              <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-3`}>
+                {form.taskType === 'deadline' && (
+                  <div>
+                    <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
+                    <Input 
+                      type="datetime-local" 
+                      value={form.startAt||''} 
+                      onChange={e=>setForm({...form, startAt:e.target.value})}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
+                  <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs">ลิงก์</label>
+                <Input value={form.link||''} onChange={e=>setForm({...form, link:e.target.value})} className="w-full" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs">เตือนก่อน</label>
+                <ReminderPicker value={form.reminders||[]} onChange={(reminders)=> setForm({...form, reminders})} />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <GhostButton onClick={()=>setEditing(false)}>ยกเลิก</GhostButton>
+              <Button onClick={save}><Check className="h-4 w-4"/> บันทึก</Button>
+            </div>
+          </Modal>
+        )}
+        {showDetailModal && (
+          <TaskDetailModal task={task} onClose={() => setShowDetailModal(false)} />
+        )}
+      </AnimatePresence>
     </Card>
   )
 }
@@ -1090,18 +1124,40 @@ function ReminderPicker({value, onChange}){
 
 
 
-function Settings({state, dispatch, userId, onLogout, setView}){
+function Settings({state, dispatch, userId}){
   const fileRef = useRef(null)
   const [isAddingSubject, setAddingSubject] = useState(false);
   const nameRef = useRef(null);
   const colorRef = useRef(null);
-  
+  const [editingSubject, setEditingSubject] = useState(null);
+  const editNameRef = useRef(null);
+  const editColorRef = useRef(null);
+
   const addSubject = ()=>{
     const name = nameRef.current.value.trim();
     if(!name) return;
     dispatch({type:'addSubject', payload:{id:uid(), name, color: colorRef.current.value}});
     nameRef.current.value = '';
     setAddingSubject(false);
+  };
+
+  const handleEditSubject = (subject) => {
+    setEditingSubject(subject);
+  };
+
+  const saveEditSubject = () => {
+    if (!editingSubject) return;
+    const name = editNameRef.current.value.trim();
+    if (name) {
+      dispatch({ type: 'updateSubject', payload: { ...editingSubject, name, color: editColorRef.current.value } });
+    }
+    setEditingSubject(null);
+  };
+
+  const handleDeleteSubject = (subjectId) => {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายวิชานี้และงานทั้งหมดที่เกี่ยวข้อง?')) {
+      dispatch({ type: 'deleteSubject', id: subjectId });
+    }
   };
 
   const exportData = ()=>{
@@ -1162,20 +1218,17 @@ function Settings({state, dispatch, userId, onLogout, setView}){
         <SectionTitle>จัดการรายวิชา</SectionTitle>
         <div className="space-y-2 mb-4">
           {state.subjects.map(s => (
-            <div key={s.id} className="flex items-center p-2 rounded-lg bg-slate-100/50 dark:bg-slate-800/50">
+            <div key={s.id} className="flex items-center p-2 rounded-lg bg-slate-100/50 dark:bg-slate-800/50 group">
               <span className="w-3 h-3 rounded-full mr-3" style={{backgroundColor: s.color}}></span>
               <span className="flex-1">{s.name}</span>
-              {/* Future edit/delete buttons can go here */}
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <GhostButton onClick={() => handleEditSubject(s)} className="!p-2"><Pencil className="h-4 w-4"/></GhostButton>
+                <GhostButton onClick={() => handleDeleteSubject(s.id)} className="!p-2 text-rose-500"><Trash2 className="h-4 w-4"/></GhostButton>
+              </div>
             </div>
           ))}
         </div>
         <Button onClick={() => setAddingSubject(true)}><Plus className="h-4 w-4"/> เพิ่มรายวิชาใหม่</Button>
-      </Card>
-
-      <Card>
-        <SectionTitle><Archive className="h-4 w-4"/> ประวัติงาน</SectionTitle>
-        <p className="text-sm text-slate-500 mb-3">ดูงานที่เสร็จสิ้นไปแล้ว</p>
-        <Button onClick={() => setView('history')}>ไปที่หน้าประวัติงาน</Button>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -1198,12 +1251,6 @@ function Settings({state, dispatch, userId, onLogout, setView}){
         </Card>
       </div>
 
-      <Card>
-        <SectionTitle>บัญชี</SectionTitle>
-        <p className="text-sm text-slate-500 mb-3">ออกจากระบบเพื่อสลับบัญชี</p>
-        <Button onClick={onLogout} className="bg-slate-600 hover:bg-slate-700"><LogOut className="h-4 w-4"/> ออกจากระบบ</Button>
-      </Card>
-
       <AnimatePresence>
         {isAddingSubject && (
           <Modal onClose={() => setAddingSubject(false)}>
@@ -1217,168 +1264,23 @@ function Settings({state, dispatch, userId, onLogout, setView}){
             </div>
           </Modal>
         )}
+        {editingSubject && (
+          <Modal onClose={() => setEditingSubject(null)}>
+            <div className="text-lg font-semibold mb-4">แก้ไขรายวิชา</div>
+            <div className="space-y-3">
+              <Input placeholder="ชื่อรายวิชา/โปรเจกต์" defaultValue={editingSubject.name} ref={editNameRef} />
+              <div className="flex items-center gap-2">
+                <Input type="color" defaultValue={editingSubject.color} ref={editColorRef} className="w-16 h-10 p-1" />
+                <Button onClick={saveEditSubject} className="flex-1">
+                  <Check className="h-4 w-4" /> บันทึกการเปลี่ยนแปลง
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </AnimatePresence>
     </div>
   )
-}
-
-function TaskDetailView({ task, onUpdate, onClose, subjects }) {
-  const [isEditing, setEditing] = useState(false);
-  const [form, setForm] = useState({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
-  
-  const save = ()=>{
-    const payload = {...form, startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
-    onUpdate(payload)
-    setEditing(false)
-  }
-
-  if (isEditing) {
-    return (
-      <>
-        <div className="px-2 mb-4">
-          <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
-          <div className="flex gap-2">
-            <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
-            <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
-          </div>
-        </div>
-        <div className="text-lg font-semibold mb-2">อัปเดตงาน</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs">สถานะ</label>
-            <div className="custom-select-wrapper">
-              <Select value={form.status} onChange={e=>setForm({...form, status: e.target.value})}>
-                <option value="todo">ยังไม่ทำ</option><option value="doing">กำลังทำ</option><option value="done">เสร็จแล้ว</option>
-              </Select></div>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs">ชื่องาน</label>
-            <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} className="w-full" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs">รายละเอียด</label>
-            <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
-          </div>
-          <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-3`}>
-            {form.taskType === 'deadline' && (
-              <div>
-                <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                <Input type="datetime-local" value={form.startAt||''} onChange={e=>setForm({...form, startAt:e.target.value})} />
-              </div>
-            )}
-            <div>
-              <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-              <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs">ลิงก์</label>
-            <Input value={form.link||''} onChange={e=>setForm({...form, link:e.target.value})} className="w-full" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs">เตือนก่อน</label>
-            <ReminderPicker value={form.reminders||[]} onChange={(reminders)=> setForm({...form, reminders})} />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <GhostButton onClick={()=>setEditing(false)}>ยกเลิก</GhostButton>
-          <Button onClick={save}><Check className="h-4 w-4"/> บันทึก</Button>
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div className="text-lg font-semibold mb-2">{task.title}</div>
-      <div className="space-y-4">
-        {task.detail && (
-          <div>
-            <label className="text-xs text-slate-500">รายละเอียด</label>
-            <div className="whitespace-pre-wrap text-sm">{task.detail}</div>
-          </div>
-        )}
-        <div>
-          <label className="text-xs text-slate-500">{task.taskType === 'event' ? 'นัดหมาย' : 'กำหนดส่ง'}</label>
-          <div className="flex items-center gap-2 text-sm">
-            {task.dueAt ? (
-              <>
-                <CalendarIcon className="h-4 w-4 text-slate-500"/>
-                <span>{format(new Date(task.dueAt), "d MMMM yyyy 'เวลา' HH:mm", {locale: th})}</span>
-              </>
-            ) : (
-              <span className="text-slate-500">ไม่มี</span>
-            )}
-          </div>
-        </div>
-        {task.link && (
-          <div>
-            <label className="text-xs text-slate-500">ลิงก์</label>
-            <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline flex items-center gap-1 text-sm truncate">
-              <LinkIcon className="h-4 w-4"/> {task.link}
-            </a>
-          </div>
-        )}
-        <div className="flex gap-4">
-          <div>
-            <label className="text-xs text-slate-500">สถานะ</label>
-            <div>{statusBadge(task.status)}</div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-500">วิชา</label>
-            <div>{task.subjectName ? <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge> : 'ไม่มี'}</div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
-        <GhostButton onClick={onClose}>ปิด</GhostButton>
-        <Button onClick={() => setEditing(true)}><Pencil className="h-4 w-4"/> แก้ไข</Button>
-      </div>
-    </>
-  );
-}
-
-function HistoryView({ tasks, dispatch }) {
-  const [selectedTasks, setSelectedTasks] = useState(new Set());
-
-  const handleDelete = () => {
-    if (selectedTasks.size === 0) return;
-    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedTasks.size} งานออกจากประวัติอย่างถาวร?`)) {
-      selectedTasks.forEach(id => dispatch({ type: 'deleteTask', id }));
-      setSelectedTasks(new Set());
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <SectionTitle><Archive className="h-5 w-5"/> ประวัติงาน</SectionTitle>
-      <p className="text-sm text-slate-500 -mt-4">รายการงานที่เสร็จสิ้นไปแล้วเกิน 1 ชั่วโมง</p>
-      <div className="flex justify-end">
-        <Button onClick={handleDelete} disabled={selectedTasks.size === 0} className="bg-rose-600 hover:bg-rose-700">
-          <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size} รายการ
-        </Button>
-      </div>
-      <div className="space-y-2">
-        {tasks.map(task => (
-          <Card key={task.id} onClick={() => {
-            const newSelected = new Set(selectedTasks);
-            if (newSelected.has(task.id)) newSelected.delete(task.id);
-            else newSelected.add(task.id);
-            setSelectedTasks(newSelected);
-          }} className={`cursor-pointer transition-opacity opacity-70 hover:opacity-100 ${selectedTasks.has(task.id) ? 'ring-2 ring-rose-500' : ''}`}>
-            <div className="flex justify-between">
-              <div>
-                <div className="font-medium">{task.title}</div>
-                <div className="text-xs text-slate-500">เสร็จสิ้นเมื่อ: {format(new Date(task.updatedAt), "d MMM yy HH:mm", {locale: th})}</div>
-              </div>
-              {selectedTasks.has(task.id) && <CheckCircle className="h-5 w-5 text-rose-500" />}
-            </div>
-          </Card>
-        ))}
-        {tasks.length === 0 && <div className="text-center text-slate-500 py-10">ยังไม่มีงานในประวัติ</div>}
-      </div>
-    </div>
-  );
 }
 
 function LoginScreen() {
