@@ -3,8 +3,8 @@ import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMin
 import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from "recharts";
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu, Circle, Minus } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
@@ -280,15 +280,8 @@ export default function App(){
   <div className="md:flex pb-16 md:pb-0">
         {/* Sidebar for Desktop - Brutalist Style */}
   <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-black border-r-4 border-black dark:border-white p-4">
-          <div className="flex items-center gap-3 mb-8">
-            {/* Raw Logo Design */}
-            <div className="h-12 w-12 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform">
-              <div className="text-2xl font-bold font-mono transform">M</div>
-            </div>
-            <div>
-              <div className="text-2xl font-black font-mono tracking-tighter transform -skew-x-6">ME-U</div>
-              <div className="text-xs uppercase tracking-widest">Your Schedule</div>
-            </div>
+          <div className="flex items-center gap-3 mb-8 px-2">
+            <img src="/logo.svg" alt="FlowO Logo" className="h-9" />
           </div>
           <nav className="flex-1 space-y-2">
             {navItems.map(({ key, label, icon: Icon }) => (
@@ -318,13 +311,8 @@ export default function App(){
   <main className="flex-1 px-4 py-6 md:p-8">
           {/* Mobile Header */}
           <header className="md:hidden flex items-center justify-between mb-4">
-             <div className="flex items-center gap-3">
-              <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                <Sparkles className="h-5 w-5" />
-              </motion.div>
-              <div className="text-xl font-bold font-display">ME-U</div>
-            </div>
-            <img src={user.photoURL} alt={user.displayName || user.email} className="h-8 w-8 rounded-full" />
+            <img src="/logo.svg" alt="FlowO Logo" className="h-8" />
+            <GhostButton onClick={() => signOut(auth)} className="!px-2"><LogOut className="h-4 w-4" /></GhostButton>
           </header>
 
           <AnimatePresence mode="wait">
@@ -335,6 +323,19 @@ export default function App(){
             </motion.div>
           </AnimatePresence>
         </main>
+
+      {/* Floating Action Buttons for Tasks View */}
+      {view === 'tasks' && (
+        <div className="fixed right-4 bottom-20 md:bottom-6 flex flex-col items-end gap-3 z-30">
+          <div className="flex flex-col gap-2 w-max">
+            {/* This part needs state from TasksView, so we'll need to lift state up or pass it down */}
+            {/* For now, let's just move the AddTaskButton */}
+            <div className="w-full">
+              <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -438,12 +439,13 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                 key={dateKey}
                 onClick={() => setSelectedDate(day)}
                 className={`
-                  aspect-square p-1.5 rounded-lg cursor-pointer
+                  aspect-square p-1 rounded-lg cursor-pointer
                   transition-all duration-200
                   border border-slate-200/50 dark:border-slate-700/50
                   backdrop-blur-sm
+                  ${dayTasks.length > 0 ? 'scale-100' : 'scale-90 opacity-80'}
                   ${isCurrentMonth 
-                    ? 'bg-white/60 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/60' 
+                    ? 'bg-white/60 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/60'
                     : 'opacity-40'}
                   ${isToday ? 'ring-2 ring-indigo-400' : ''}
                 `}
@@ -474,13 +476,13 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
         <div className="flex items-center justify-between mb-4">
           <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
           <div className="flex items-center gap-2">
-            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate || new Date(), 1))}>
+            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate ?? new Date(), 1))}>
               <ChevronLeft className="h-4 w-4"/>
             </GhostButton>
             <div className="text-sm font-medium w-32 text-center">
-              {format(selectedDate || new Date(), 'EEEE d MMM', {locale: th})}
+              {selectedDate ? format(selectedDate, 'EEEE d MMM', {locale: th}) : 'เลือกวัน'}
             </div>
-            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate || new Date(), 1))}>
+            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate ?? new Date(), 1))}>
               <ChevronRight className="h-4 w-4"/>
             </GhostButton>
           </div>
@@ -501,7 +503,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           {/* Tasks for selectedDate */}
           <div className="centered relative h-full">
             {tasks
-              .filter(t => t.dueAt && isSameDay(new Date(t.dueAt), selectedDate || new Date()))
+              .filter(t => t.dueAt && selectedDate && isSameDay(new Date(t.dueAt), selectedDate))
               .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
               .map(task => {
                 const start = new Date(task.dueAt);
@@ -709,20 +711,6 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
         }
       </div>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed right-4 bottom-6 flex flex-col items-end gap-3 z-30">
-        <div className="flex flex-col gap-2 w-max">
-          {selectedTasks.size > 0 && (
-            <Button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600 w-full">
-              <Trash2 className="h-4 w-4"/> ลบ {selectedTasks.size}
-            </Button>
-          )}
-          <div className="w-full">
-            <AddTaskButton subjects={state.subjects} onAdd={(payload) => dispatch({ type: 'addTask', payload })} />
-          </div>
-        </div>
-      </div>
-
       {/* Modals */}
       <AnimatePresence>
         {isAddingSubject && (
@@ -759,13 +747,13 @@ function AddTaskButton({subjects, onAdd}){
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     subjectId: subjects[0]?.id || '',
-    title:'', detail:'', dueAt:'', link:'', status:'todo', progress:0, priority:'med', category:'เรียน', reminders:[]
+    title:'', detail: '', dueAt: '', link: '', status:'todo', progress:0, priority:'med', category:'เรียน', reminders:[]
   })
   useEffect(()=>{ if(subjects.length && !form.subjectId) setForm(f=>({...f, subjectId: subjects[0].id})) },[subjects])
 
   const submit = ()=>{
     if(!form.title) return alert('ใส่ชื่องานก่อนนะ')
-    const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null }
+    const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
     onAdd(payload)
     setOpen(false)
     setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', status:'todo', progress:0, reminders:[]}))
@@ -777,22 +765,26 @@ function AddTaskButton({subjects, onAdd}){
       <AnimatePresence>
         {open && (
           <Modal onClose={()=>setOpen(false)}>
-            <div className="text-lg font-semibold mb-4">เพิ่มงานใหม่</div>
-            <div className="overflow-y-auto max-h-[calc(85vh-8rem)]">
+            <div className="text-lg font-semibold mb-4 px-2">เพิ่มงานใหม่</div>
+            <div className="overflow-y-auto max-h-[calc(85vh-8rem)] px-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">รายวิชา</label>
-                  <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
-                    {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </Select>
+                  <div className="custom-select-wrapper">
+                    <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
+                      {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </Select>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs">ความสำคัญ</label>
-                  <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
-                    <option value="high">ด่วน</option>
-                    <option value="med">สำคัญ</option>
-                    <option value="low">ทั่วไป</option>
-                  </Select>
+                  <div className="custom-select-wrapper">
+                    <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
+                      <option value="high">ด่วน</option>
+                      <option value="med">สำคัญ</option>
+                      <option value="low">ทั่วไป</option>
+                    </Select>
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs">ชื่องาน</label>
@@ -804,7 +796,12 @@ function AddTaskButton({subjects, onAdd}){
                 </div>
                 <div>
                   <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
-                  <Input type="datetime-local" value={form.dueAt} onChange={e=>setForm({...form, dueAt:e.target.value})} />
+                  <Input 
+                    type="datetime-local" 
+                    value={form.dueAt} 
+                    onChange={e=>setForm({...form, dueAt:e.target.value})}
+                    className="appearance-none"
+                  />
                 </div>
                 <div>
                   <label className="text-xs">ลิงก์ที่เกี่ยวข้อง</label>
@@ -812,19 +809,36 @@ function AddTaskButton({subjects, onAdd}){
                 </div>
                 <div>
                   <label className="text-xs">หมวดหมู่</label>
-                  <Select value={form.category} onChange={e=>setForm({...form, category:e.target.value})}>
-                    <option value="เรียน">เรียน</option>
-                    <option value="งาน">งาน</option>
-                    <option value="ส่วนตัว">ส่วนตัว</option>
-                  </Select>
+                  <div className="custom-select-wrapper">
+                    <Select value={form.category} onChange={e=>setForm({...form, category:e.target.value})}>
+                      <option value="เรียน">เรียน</option>
+                      <option value="งาน">งาน</option>
+                      <option value="ส่วนตัว">ส่วนตัว</option>
+                    </Select>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs">สถานะ</label>
-                  <Select value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
-                    <option value="todo">ยังไม่ทำ</option>
-                    <option value="doing">กำลังทำ</option>
-                    <option value="done">เสร็จแล้ว</option>
-                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {[
+                      { value: 'todo', label: 'ยังไม่ทำ' },
+                      { value: 'doing', label: 'กำลังทำ' },
+                      { value: 'done', label: 'เสร็จแล้ว' },
+                    ].map(s => (
+                      <GhostButton key={s.value} onClick={() => {
+                        const newStatus = s.value;
+                        let newProgress = form.progress;
+                        if (newStatus === 'done') {
+                          newProgress = 100;
+                        } else if (newStatus === 'doing' && form.progress === 0) {
+                          newProgress = 20;
+                        }
+                        setForm({ ...form, status: newStatus, progress: newProgress });
+                      }} className={form.status === s.value ? 'bg-slate-50 dark:bg-slate-800' : ''}>
+                        {s.label}
+                      </GhostButton>
+                    ))}
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs">เตือนก่อน (เลือกหลายอันได้)</label>
@@ -844,7 +858,16 @@ function AddTaskButton({subjects, onAdd}){
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs">ความคืบหน้า: {form.progress}%</label>
-                  <input type="range" min={0} max={100} value={form.progress} onChange={e=>setForm({...form, progress: Number(e.target.value)})} className="w-full" />
+                  <input type="range" min={0} max={100} value={form.progress} onChange={e=>{
+                    const newProgress = Number(e.target.value);
+                    let newStatus = form.status;
+                    if (newProgress === 100) {
+                      newStatus = 'done';
+                    } else if (form.status === 'done' && newProgress < 100) {
+                      newStatus = 'doing';
+                    }
+                    setForm({...form, progress: newProgress, status: newStatus });
+                  }} className="w-full" />
                 </div>
               </div>
               <div className="mt-4 flex justify-end gap-2">
@@ -862,11 +885,11 @@ function AddTaskButton({subjects, onAdd}){
 function TaskItem({task, onUpdate, onDelete}){
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
-  useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''}), [task])
+  useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : '', detail: task.detail || '', link: task.link || ''}), [task])
 
   const [showDetailModal, setShowDetailModal] = useState(false)
   const save = ()=>{
-    const payload = {...form, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null}
+    const payload = {...form, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
     onUpdate(payload)
     setEditing(false)
   }
@@ -899,14 +922,19 @@ function TaskItem({task, onUpdate, onDelete}){
 
   return (
     <Card className={statusGradientClass}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start gap-4">
+        {/* Status Toggle Button */}
+        <button onClick={handleStatusChange} className="flex-shrink-0 mt-1 transition-transform active:scale-90" title="คลิกเพื่อเปลี่ยนสถานะ">
+          {task.status === 'done' && <CheckCircle onClick={(e) => e.stopPropagation()} className="h-6 w-6 text-emerald-500" />}
+          {task.status === 'doing' && <div className="h-6 w-6 rounded-full border-2 border-amber-500 flex items-center justify-center"><Minus className="h-4 w-4 text-amber-500"/></div>}
+          {task.status === 'todo' && <Circle className="h-6 w-6 text-slate-300 dark:text-slate-600" />}
+        </button>
+
+        {/* Task Details */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="font-medium truncate">{task.title}</div>
             {priorityBadge(task.priority)}
-            <button onClick={handleStatusChange} className="transition-transform active:scale-95" title="คลิกเพื่อเปลี่ยนสถานะ">
-              {statusBadge(task.status)}
-            </button>
             {task.subjectName && <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge>}
           </div>
           {task.detail && (
@@ -934,7 +962,8 @@ function TaskItem({task, onUpdate, onDelete}){
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 ml-auto">
           <GhostButton onClick={()=> setEditing(true)}><Pencil className="h-4 w-4"/></GhostButton>
           <GhostButton onClick={()=> onDelete(task.id)}><Trash2 className="h-4 w-4"/></GhostButton>
         </div>
@@ -947,19 +976,29 @@ function TaskItem({task, onUpdate, onDelete}){
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs">สถานะ</label>
-                <Select value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>
-                  <option value="todo">ยังไม่ทำ</option>
-                  <option value="doing">กำลังทำ</option>
-                  <option value="done">เสร็จแล้ว</option>
-                </Select>
+                <div className="custom-select-wrapper">
+                  <Select value={form.status} onChange={e=>{
+                    const newStatus = e.target.value;
+                    let newProgress = form.progress || 0;
+                    if (newStatus === 'done') {
+                      newProgress = 100;
+                    } else if (newStatus === 'doing' && newProgress === 0) {
+                      newProgress = 20;
+                    }
+                    setForm({...form, status: newStatus, progress: newProgress });
+                  }}>
+                    <option value="todo">ยังไม่ทำ</option><option value="doing">กำลังทำ</option><option value="done">เสร็จแล้ว</option>
+                  </Select></div>
               </div>
               <div>
                 <label className="text-xs">ความสำคัญ</label>
-                <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
-                  <option value="high">ด่วน</option>
-                  <option value="med">สำคัญ</option>
-                  <option value="low">ทั่วไป</option>
-                </Select>
+                <div className="custom-select-wrapper">
+                  <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
+                    <option value="high">ด่วน</option>
+                    <option value="med">สำคัญ</option>
+                    <option value="low">ทั่วไป</option>
+                  </Select>
+                </div>
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">ชื่องาน</label>
@@ -983,7 +1022,15 @@ function TaskItem({task, onUpdate, onDelete}){
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs">ความคืบหน้า: {form.progress}%</label>
-                <input type="range" min={0} max={100} value={form.progress||0} onChange={e=>setForm({...form, progress: Number(e.target.value)})} className="w-full" />
+                <input type="range" min={0} max={100} value={form.progress||0} onChange={e=>{
+                  const newProgress = Number(e.target.value);
+                  let newStatus = form.status;
+                  if (newProgress === 100) {
+                    newStatus = 'done';
+                  } else if (form.status === 'done' && newProgress < 100) {
+                    newStatus = 'doing';
+                  }
+                  setForm({...form, progress: newProgress, status: newStatus });}} className="w-full" />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
@@ -1080,7 +1127,7 @@ function Settings({state, dispatch, userId}){
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'meu-data.json'
+    a.download = 'flowo-data.json'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -1167,7 +1214,7 @@ function LoginScreen() {
         <motion.div initial={{rotate:-8, scale:0.9}} animate={{rotate:0, scale:1}} className="inline-block h-20 w-20 mb-4 rounded-3xl bg-indigo-600 text-white items-center justify-center shadow-lg shadow-indigo-500/30">
           <Sparkles className="h-12 w-12 m-4" />
         </motion.div>
-        <h1 className="text-3xl font-bold font-display">ยินดีต้อนรับสู่ ME-U</h1>
+        <h1 className="text-3xl font-bold font-display">ยินดีต้อนรับสู่ FlowO</h1>
         <p className="text-slate-500 mt-2">จัดการตารางงานและชีวิตให้ง่ายขึ้น</p>
       </div>
       <Button onClick={handleSignIn} className="!px-6 !py-3 !text-base"><User className="h-5 w-5" /> เข้าสู่ระบบด้วย Google</Button>
@@ -1194,7 +1241,7 @@ function Modal({children, onClose}){
       />
 
       {/* Centering container: ensures symmetric top/bottom spacing and centers content */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8" onClick={onClose}>
         <motion.div
           initial={{ opacity: 0, scale: 0.98, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1204,7 +1251,7 @@ function Modal({children, onClose}){
           onClick={(e) => e.stopPropagation()}
         >
           {/* Scrollable area: max-height keeps equal margins and allows internal scrolling when content is tall */}
-          <div className="max-h-[calc(100vh-4rem)] w-full overflow-y-auto">
+          <div className="max-h-[calc(100vh-4rem)] w-full overflow-y-auto rounded-2xl">
             <Card className="p-4 md:p-6 rounded-2xl">
               {children}
             </Card>
