@@ -66,6 +66,7 @@
   }
   .custom-select-wrapper select {
     @apply appearance-none pr-8; /* Remove default arrow and add space for custom one */
+    background-image: none; /* Hide the default arrow in some browsers */
   }
   .custom-select-wrapper::after {
     content: '⌄'; /* Chevron down character */

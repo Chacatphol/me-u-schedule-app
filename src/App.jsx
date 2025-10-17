@@ -388,10 +388,9 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
         <div className="space-y-3">
           {dueSoon.length > 0 ? dueSoon.map(task => (
             <div key={task.id} className="p-3 rounded-lg bg-white/60 dark:bg-slate-800/50 flex items-start justify-between">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{task.title}</div>
                 <div className="text-xs text-slate-500">{task.subjectName || 'ไม่มีวิชา'} • {task.dueAt ? format(new Date(task.dueAt), "d MMM HH:mm", {locale: th}) : 'ไม่ระบุเวลา'}</div>
-                <div className="mt-2"><Progress value={task.progress||0} /></div>
               </div>
               <div className="ml-3 flex flex-col items-end gap-2">
                 {priorityBadge(task.priority)}
@@ -747,16 +746,16 @@ function AddTaskButton({subjects, onAdd}){
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     subjectId: subjects[0]?.id || '',
-    title:'', detail: '', dueAt: '', link: '', status:'todo', progress:0, priority:'med', category:'เรียน', reminders:[]
+    title:'', detail: '', dueAt: '', link: '', status:'todo', priority:'med', category:'เรียน', reminders:[]
   })
   useEffect(()=>{ if(subjects.length && !form.subjectId) setForm(f=>({...f, subjectId: subjects[0].id})) },[subjects])
 
   const submit = ()=>{
     if(!form.title) return alert('ใส่ชื่องานก่อนนะ')
-    const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
+    const payload = { ...form, progress: 0, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
     onAdd(payload)
     setOpen(false)
-    setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', status:'todo', progress:0, reminders:[]}))
+    setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', status:'todo', reminders:[]}))
   }
 
   return (
@@ -825,16 +824,7 @@ function AddTaskButton({subjects, onAdd}){
                       { value: 'doing', label: 'กำลังทำ' },
                       { value: 'done', label: 'เสร็จแล้ว' },
                     ].map(s => (
-                      <GhostButton key={s.value} onClick={() => {
-                        const newStatus = s.value;
-                        let newProgress = form.progress;
-                        if (newStatus === 'done') {
-                          newProgress = 100;
-                        } else if (newStatus === 'doing' && form.progress === 0) {
-                          newProgress = 20;
-                        }
-                        setForm({ ...form, status: newStatus, progress: newProgress });
-                      }} className={form.status === s.value ? 'bg-slate-50 dark:bg-slate-800' : ''}>
+                      <GhostButton key={s.value} onClick={() => setForm({ ...form, status: s.value })} className={form.status === s.value ? 'bg-slate-50 dark:bg-slate-800' : ''}>
                         {s.label}
                       </GhostButton>
                     ))}
@@ -855,19 +845,6 @@ function AddTaskButton({subjects, onAdd}){
                       </GhostButton>
                     ))}
                   </div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-xs">ความคืบหน้า: {form.progress}%</label>
-                  <input type="range" min={0} max={100} value={form.progress} onChange={e=>{
-                    const newProgress = Number(e.target.value);
-                    let newStatus = form.status;
-                    if (newProgress === 100) {
-                      newStatus = 'done';
-                    } else if (form.status === 'done' && newProgress < 100) {
-                      newStatus = 'doing';
-                    }
-                    setForm({...form, progress: newProgress, status: newStatus });
-                  }} className="w-full" />
                 </div>
               </div>
               <div className="mt-4 flex justify-end gap-2">
@@ -894,7 +871,8 @@ function TaskItem({task, onUpdate, onDelete}){
     setEditing(false)
   }
 
-  const handleStatusChange = () => {
+  const handleStatusChange = (e) => {
+    e.stopPropagation(); // หยุดไม่ให้ event ส่งผลกระทบกับส่วนอื่น
     const statuses = ['todo', 'doing', 'done'];
     const currentIndex = statuses.indexOf(task.status);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
@@ -925,7 +903,7 @@ function TaskItem({task, onUpdate, onDelete}){
       <div className="flex items-start gap-4">
         {/* Status Toggle Button */}
         <button onClick={handleStatusChange} className="flex-shrink-0 mt-1 transition-transform active:scale-90" title="คลิกเพื่อเปลี่ยนสถานะ">
-          {task.status === 'done' && <CheckCircle onClick={(e) => e.stopPropagation()} className="h-6 w-6 text-emerald-500" />}
+          {task.status === 'done' && <CheckCircle className="h-6 w-6 text-emerald-500" />}
           {task.status === 'doing' && <div className="h-6 w-6 rounded-full border-2 border-amber-500 flex items-center justify-center"><Minus className="h-4 w-4 text-amber-500"/></div>}
           {task.status === 'todo' && <Circle className="h-6 w-6 text-slate-300 dark:text-slate-600" />}
         </button>
@@ -938,19 +916,11 @@ function TaskItem({task, onUpdate, onDelete}){
             {task.subjectName && <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge>}
           </div>
           {task.detail && (
-            <>
-              <div className={`text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap line-clamp-4`}>
-                {task.detail}
-              </div>
-              {task.detail && task.detail.length > 150 && ( // Check if truncation is needed
-                <button onClick={() => setShowDetailModal(true)} className="text-xs text-indigo-500 hover:underline mt-1">
-                  ดูรายละเอียด
-                </button>
-              )}
-            </>
+            <div className={`text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap line-clamp-4`}>
+              {task.detail}
+            </div>
           )}
           <div className="mt-2">
-            <Progress value={task.progress||0} />
             <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
               {task.dueAt ? (
                 <>
@@ -977,16 +947,7 @@ function TaskItem({task, onUpdate, onDelete}){
               <div>
                 <label className="text-xs">สถานะ</label>
                 <div className="custom-select-wrapper">
-                  <Select value={form.status} onChange={e=>{
-                    const newStatus = e.target.value;
-                    let newProgress = form.progress || 0;
-                    if (newStatus === 'done') {
-                      newProgress = 100;
-                    } else if (newStatus === 'doing' && newProgress === 0) {
-                      newProgress = 20;
-                    }
-                    setForm({...form, status: newStatus, progress: newProgress });
-                  }}>
+                  <Select value={form.status} onChange={e=>setForm({...form, status: e.target.value})}>
                     <option value="todo">ยังไม่ทำ</option><option value="doing">กำลังทำ</option><option value="done">เสร็จแล้ว</option>
                   </Select></div>
               </div>
@@ -1019,18 +980,6 @@ function TaskItem({task, onUpdate, onDelete}){
               <div className="md:col-span-2">
                 <label className="text-xs">เตือนก่อน</label>
                 <ReminderPicker value={form.reminders||[]} onChange={(reminders)=> setForm({...form, reminders})} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-xs">ความคืบหน้า: {form.progress}%</label>
-                <input type="range" min={0} max={100} value={form.progress||0} onChange={e=>{
-                  const newProgress = Number(e.target.value);
-                  let newStatus = form.status;
-                  if (newProgress === 100) {
-                    newStatus = 'done';
-                  } else if (form.status === 'done' && newProgress < 100) {
-                    newStatus = 'doing';
-                  }
-                  setForm({...form, progress: newProgress, status: newStatus });}} className="w-full" />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
