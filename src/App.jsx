@@ -4,18 +4,17 @@ import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from "recharts";
-import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu, Circle, Minus } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircle, TimerReset, Upload, Download, ChevronLeft, ChevronRight, Link as LinkIcon, ListTodo, Sparkles, Folder, LayoutGrid, Layers, RefreshCw, Sun, Moon, BarChart3, LogOut, User, Flame, TrendingUp, Search, Filter, Menu, Circle, Minus, Flag, Clock } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
 import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
-import { TaskEditForm } from './components/TaskEditForm';
 
 // --- Data layer ---
 const initialState = {
   theme: 'auto',
   subjects: [], // {id, name, color}
-  tasks: [], // {id, subjectId, title, detail, dueAt|null, link, status:'todo'|'doing'|'done', progress:0-100, priority:'low'|'med'|'high', category:'เรียน'|'งาน'|'ส่วนตัว', reminders:[{type:'minutes'|'hours'|'days', amount:number}], createdAt, updatedAt}
+  tasks: [], // {id, subjectId, title, detail, startAt|null, dueAt|null, taskType:'deadline'|'event', link, status:'todo'|'doing'|'done', category:'เรียน'|'งาน'|'ส่วนตัว', reminders:[{type:'minutes'|'hours'|'days', amount:number}], createdAt, updatedAt}
   lastLogin: null,
   loginStreak: 0,
 }
@@ -142,7 +141,7 @@ function scheduleReminder(task){
 
 function timeLeftLabel(dueAt){
   const due = new Date(dueAt)
-  const mins = Math.max(0, Math.round((due.getTime()-Date.now())/60000))
+  const mins = Math.max(0, differenceInMinutes(due, new Date()))
   if(mins>=1440){ const d = Math.floor(mins/1440); return `เหลือ ${d} วัน` }
   if(mins>=60){ const h = Math.floor(mins/60); return `เหลือ ${h} ชม.` }
   return `เหลือ ${mins} นาที`
@@ -152,12 +151,6 @@ function statusBadge(s){
   const map = { todo:'ยังไม่ทำ', doing:'กำลังทำ', done:'เสร็จแล้ว' }
   const cls = s==='done'? 'border-emerald-400 text-emerald-600 dark:text-emerald-300' : s==='doing'? 'border-amber-400 text-amber-600 dark:text-amber-300' : 'border-slate-300 text-slate-500 dark:text-slate-300'
   return <Badge className={cls}>{map[s]}</Badge>
-}
-
-function priorityBadge(p){
-  const txt = p==='high'? 'ด่วน' : p==='med'? 'สำคัญ' : 'ทั่วไป'
-  const cls = p==='high'? 'border-rose-400 text-rose-600 dark:text-rose-300' : p==='med'? 'border-indigo-400 text-indigo-600 dark:text-indigo-300' : 'border-slate-300 text-slate-500 dark:text-slate-300'
-  return <Badge className={cls}>{txt}</Badge>
 }
 
 function getUrgencyStyle(dueAt) {
@@ -229,15 +222,12 @@ export default function App(){
     if(selectedSubject) arr = arr.filter(t=>t.subjectId===selectedSubject)
     if(query.trim()) arr = arr.filter(t=> (t.title+" "+(t.detail||'')).toLowerCase().includes(query.toLowerCase()))
     // sort: with due first ascending, then without due, then status
-    arr = [...arr].sort((a,b)=>{
-      const ad = a.dueAt?1:0, bd = b.dueAt?1:0
-      if(ad!==bd) return bd - ad // with due first
-      if(a.dueAt && b.dueAt){ return new Date(a.dueAt) - new Date(b.dueAt) }
-      // fallback by priority then progress
-      const priOrder = {high:0, med:1, low:2}
-      if(priOrder[a.priority]!==priOrder[b.priority]) return priOrder[a.priority]-priOrder[b.priority]
-      return (a.progress||0) - (b.progress||0)
-    })
+    arr = [...arr].sort((a, b) => {
+      if (a.dueAt && b.dueAt) return new Date(a.dueAt) - new Date(b.dueAt);
+      if (a.dueAt) return -1; // a has due date, b doesn't, a comes first
+      if (b.dueAt) return 1;  // b has due date, a doesn't, b comes first
+      return new Date(b.createdAt) - new Date(a.createdAt); // both have no due date, sort by creation
+    });
     return arr
   },[tasks, selectedSubject, query])
 
@@ -356,10 +346,12 @@ export default function App(){
 
 function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, setSelectedSubject}){
   // start with no date selected to avoid opening the date modal on app load
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [modalDate, setModalDate] = useState(null);
+  const [scheduleDate, setScheduleDate] = useState(new Date());
 
   // Calendar setup
   const [calendarCursor, setCalendarCursor] = useState(new Date());
+
   const start = startOfMonth(calendarCursor);
   const end = endOfMonth(calendarCursor);
   const calendarDays = eachDayOfInterval({
@@ -375,6 +367,60 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
     acc[dateKey].push(task);
     return acc;
   }, {});
+
+  const handleDateSelect = (day) => {
+    setModalDate(day);
+    setScheduleDate(day);
+  };
+
+  const getTaskTypeForDay = (day) => {
+    const tasksOnDay = tasksByDate[format(day, 'yyyy-MM-dd')] || [];
+    if (tasksOnDay.some(t => t.taskType === 'event')) return 'event';
+    if (tasksOnDay.some(t => t.taskType === 'deadline' || !t.taskType)) return 'deadline';
+    return null;
+  };
+
+  const scheduleItems = useMemo(() => {
+    const items = [];
+    const dayTasks = (tasksByDate[format(scheduleDate, 'yyyy-MM-dd')] || [])
+      .sort((a, b) => (a.dueAt ? new Date(a.dueAt).getTime() : -1) - (b.dueAt ? new Date(b.dueAt).getTime() : -1));
+
+    const allDayTasks = dayTasks.filter(t => !t.dueAt);
+    if (allDayTasks.length > 0) {
+      items.push({ type: 'all-day', tasks: allDayTasks });
+    }
+
+    const timedTasks = dayTasks.filter(t => t.dueAt);
+    let lastEventEnd = new Date(scheduleDate).setHours(0, 0, 0, 0);
+
+    timedTasks.forEach(task => {
+      const taskStart = new Date(task.dueAt).getTime();
+      if (taskStart > lastEventEnd) {
+        const freeMinutes = differenceInMinutes(taskStart, lastEventEnd);
+        if (freeMinutes > 15) { // Only show free time if it's significant
+          items.push({ type: 'free', start: lastEventEnd, end: taskStart, duration: freeMinutes });
+        }
+      }
+      const taskEnd = addMinutes(taskStart, task.duration || 60).getTime();
+      items.push({ type: 'task', task });
+      lastEventEnd = taskEnd;
+    });
+
+    const endOfDay = new Date(scheduleDate).setHours(23, 59, 59, 999);
+    if (endOfDay > lastEventEnd) {
+      const freeMinutes = differenceInMinutes(endOfDay, lastEventEnd);
+      if (freeMinutes > 15) {
+        items.push({ type: 'free', start: lastEventEnd, end: endOfDay, duration: freeMinutes });
+      }
+    }
+
+    return items;
+  }, [scheduleDate, tasksByDate]);
+
+  const formatFreeTime = (minutes) => {
+    if (minutes < 60) return `${minutes} นาที`;
+    return `${Math.floor(minutes / 60)} ชม. ${minutes % 60 > 0 ? minutes % 60 + ' นาที' : ''}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -393,7 +439,6 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                 <div className="text-xs text-slate-500">{task.subjectName || 'ไม่มีวิชา'} • {task.dueAt ? format(new Date(task.dueAt), "d MMM HH:mm", {locale: th}) : 'ไม่ระบุเวลา'}</div>
               </div>
               <div className="ml-3 flex flex-col items-end gap-2">
-                {priorityBadge(task.priority)}
                 {statusBadge(task.status)}
               </div>
             </div>
@@ -430,39 +475,31 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
           {calendarDays.map(day => {
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayTasks = tasksByDate[dateKey] || [];
-            const isToday = isSameDay(day, new Date());
+            const taskTypeOnDay = getTaskTypeForDay(day);
             const isCurrentMonth = isSameMonth(day, calendarCursor);
 
             return (
               <div
                 key={dateKey}
-                onClick={() => setSelectedDate(day)}
+                onClick={() => handleDateSelect(day)}
                 className={`
                   aspect-square p-1 rounded-lg cursor-pointer
                   transition-all duration-200
                   border border-slate-200/50 dark:border-slate-700/50
                   backdrop-blur-sm
-                  ${dayTasks.length > 0 ? 'scale-100' : 'scale-90 opacity-80'}
+                  ${dayTasks.length > 0 ? 'scale-100' : 'scale-90 opacity-70'}
                   ${isCurrentMonth 
                     ? 'bg-white/60 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/60'
                     : 'opacity-40'}
-                  ${isToday ? 'ring-2 ring-indigo-400' : ''}
+                  ${isSameDay(day, new Date()) ? 'ring-2 ring-indigo-400' : ''}
                 `}
               >
-                <div className={`text-xs mb-1 ${isToday ? 'font-semibold text-indigo-600' : ''}`}>
+                <div className={`text-xs mb-1 ${isSameDay(day, new Date()) ? 'font-semibold text-indigo-600' : ''}`}>
                   {format(day, 'd')}
                 </div>
-                <div className="space-y-1">
-                  {dayTasks.slice(0,3).map(task => (
-                    <div
-                      key={task.id}
-                      className="h-1 rounded-full"
-                      style={{backgroundColor: task.subjectColor || '#94a3b8'}}
-                    />
-                  ))}
-                  {dayTasks.length > 3 && (
-                    <div className="text-[10px] text-slate-500">+{dayTasks.length - 3}</div>
-                  )}
+                <div className="flex justify-center items-end h-4">
+                  {taskTypeOnDay === 'event' && <div className="h-1.5 w-1.5 bg-green-500 rounded-full"></div>}
+                  {taskTypeOnDay === 'deadline' && <div className="h-0.5 w-4/5 bg-blue-500"></div>}
                 </div>
               </div>
             );
@@ -475,105 +512,89 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
         <div className="flex items-center justify-between mb-4">
           <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
           <div className="flex items-center gap-2">
-            <GhostButton onClick={() => setSelectedDate(subDays(selectedDate ?? new Date(), 1))}>
+            <GhostButton onClick={() => setScheduleDate(subDays(scheduleDate, 1))}>
               <ChevronLeft className="h-4 w-4"/>
             </GhostButton>
             <div className="text-sm font-medium w-32 text-center">
-              {selectedDate ? format(selectedDate, 'EEEE d MMM', {locale: th}) : 'เลือกวัน'}
+              {format(scheduleDate, 'EEEE d MMM', {locale: th})}
             </div>
-            <GhostButton onClick={() => setSelectedDate(addDays(selectedDate ?? new Date(), 1))}>
+            <GhostButton onClick={() => setScheduleDate(addDays(scheduleDate, 1))}>
               <ChevronRight className="h-4 w-4"/>
             </GhostButton>
           </div>
         </div>
 
-        <div className="relative min-h-[32rem]">
-          {/* Time Guide Lines */}
-          <div className="absolute inset-0 flex flex-col">
-            {Array.from({length: 24}).map((_, i) => (
-              <div key={i} className="flex-1 border-t border-slate-200/30 dark:border-slate-700/30">
-                <div className="absolute -mt-3 -ml-2 text-xs text-slate-400">
-                  {String(i).padStart(2, '0')}:00
+        <div className="space-y-1">
+          {scheduleItems.length > 0 ? scheduleItems.map((item, index) => {
+            if (item.type === 'task') {
+              const { task } = item;
+              const start = new Date(task.dueAt);
+              const isEvent = task.taskType === 'event';
+              return (
+                <div key={task.id} className="flex gap-4">
+                  <div className="text-xs text-slate-400 w-12 text-right pt-2">{format(start, 'HH:mm')}</div>
+                  <div className={`flex-1 p-3 rounded-lg border ${isEvent ? 'border-green-500' : 'border-blue-500'}`} style={{ backgroundColor: hexToRgba(isEvent ? '#22c55e' : '#3b82f6', 0.1) }}>
+                    <div className="font-medium text-sm">{task.title}</div>
+                    <div className="text-xs text-slate-500">{task.subjectName}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Tasks for selectedDate */}
-          <div className="centered relative h-full">
-            {tasks
-              .filter(t => t.dueAt && selectedDate && isSameDay(new Date(t.dueAt), selectedDate))
-              .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
-              .map(task => {
-                const start = new Date(task.dueAt);
-                const minutes = task.duration || 60; // Default 1 hour if no duration
-                const heightPercent = (minutes / 1440) * 100; // 1440 minutes in a day
-                const topPercent = (start.getHours() * 60 + start.getMinutes()) / 1440 * 100;
-                
-                return (
-                  <div
-                    key={task.id}
-                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                    className="absolute w-full rounded-lg border border-slate-200/50 dark:border-slate-700/50 
-                      cursor-pointer transition-all hover:scale-[1.02] overflow-hidden"
-                    style={{
-                      top: `${topPercent}%`,
-                      height: `${heightPercent}%`,
-                      backgroundColor: hexToRgba(task.subjectColor || '#6366f1', 0.1),
-                      borderColor: task.subjectColor || '#6366f1'
-                    }}
-                  >
-                    <div className="p-2">
-                      <div className="font-medium truncate text-sm">{task.title}</div>
-                      <div className="text-xs text-slate-500 truncate">
-                        {format(start, 'HH:mm')} - {format(addMinutes(start, minutes), 'HH:mm')}
-                      </div>
-                      <div className="mt-1 flex gap-1">
-                        {statusBadge(task.status)}
+              );
+            }
+            if (item.type === 'free') {
+              return (
+                <div key={`free-${index}`} className="flex items-center gap-4 h-8">
+                  <div className="text-xs text-slate-400 w-12 text-right"></div>
+                  <div className="flex-1 flex items-center">
+                    <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 relative">
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-100 dark:bg-slate-900 px-2 text-xs text-slate-400">
+                        ว่าง {formatFreeTime(item.duration)}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-          </div>
+                </div>
+              );
+            }
+            if (item.type === 'all-day') {
+              return (
+                <div key="all-day" className="mb-2">
+                  <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">งานที่ต้องทำ (ทั้งวัน)</div>
+                  {item.tasks.map(t => (
+                    <div key={t.id} className="p-2 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 mb-1 text-sm">{t.title}</div>
+                  ))}
+                </div>
+              );
+            }
+            return null;
+          }) : (
+            <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>
+          )}
         </div>
       </Card>
 
       {/* Task List Modal for Selected Date */}
       <AnimatePresence>
-        {selectedDate && (
-          <Modal onClose={() => setSelectedDate(null)}>
+        {modalDate && (
+          <Modal onClose={() => setModalDate(null)}>
             <div className="text-lg font-semibold mb-4">
-              งานวันที่ {format(selectedDate, 'd MMMM yyyy', {locale: th})}
+              งานวันที่ {format(modalDate, 'd MMMM yyyy', {locale: th})}
             </div>
-            {tasksByDate[format(selectedDate, 'yyyy-MM-dd')]?.length > 0 ? (
+            {tasksByDate[format(modalDate, 'yyyy-MM-dd')]?.length > 0 ? (
               <div className="space-y-2">
-                {tasksByDate[format(selectedDate, 'yyyy-MM-dd')].map(task => (
-                  <div
-                    key={task.id}
-                    onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                    className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
-                  >
+                {tasksByDate[format(modalDate, 'yyyy-MM-dd')].map(task => (
+                  <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                       className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{task.title}</div>
                         <div className="text-xs text-slate-500">{task.subjectName}</div>
                       </div>
-                      <div className="flex gap-2">
-                        {statusBadge(task.status)}
-                        {priorityBadge(task.priority)}
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <Progress value={task.progress || 0} />
+                      <div className="flex gap-2">{statusBadge(task.status)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-slate-500 text-center py-8">
-                ไม่มีงานในวันนี้
-              </div>
+              <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>
             )}
           </Modal>
         )}
@@ -746,16 +767,16 @@ function AddTaskButton({subjects, onAdd}){
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     subjectId: subjects[0]?.id || '',
-    title:'', detail: '', dueAt: '', link: '', status:'todo', priority:'med', category:'เรียน', reminders:[]
+    title:'', detail: '', startAt: '', dueAt: '', link: '', status:'todo', category:'เรียน', reminders:[], taskType: 'deadline'
   })
   useEffect(()=>{ if(subjects.length && !form.subjectId) setForm(f=>({...f, subjectId: subjects[0].id})) },[subjects])
 
   const submit = ()=>{
     if(!form.title) return alert('ใส่ชื่องานก่อนนะ')
-    const payload = { ...form, progress: 0, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
+    const payload = { ...form, priority: 'med', id:uid(), createdAt:Date.now(), updatedAt:Date.now(), startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
     onAdd(payload)
     setOpen(false)
-    setForm(f=>({...f, title:'', detail:'', dueAt:'', link:'', status:'todo', reminders:[]}))
+    setForm(f=>({...f, title:'', detail:'', startAt: '', dueAt:'', link:'', status:'todo', reminders:[], taskType: 'deadline'}))
   }
 
   return (
@@ -765,6 +786,14 @@ function AddTaskButton({subjects, onAdd}){
         {open && (
           <Modal onClose={()=>setOpen(false)}>
             <div className="text-lg font-semibold mb-4 px-2">เพิ่มงานใหม่</div>
+            <div className="px-2 mb-4">
+              <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
+              <div className="flex gap-2">
+                <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
+                <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
+              </div>
+            </div>
+
             <div className="overflow-y-auto max-h-[calc(85vh-8rem)] px-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -772,16 +801,6 @@ function AddTaskButton({subjects, onAdd}){
                   <div className="custom-select-wrapper">
                     <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
                       {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs">ความสำคัญ</label>
-                  <div className="custom-select-wrapper">
-                    <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
-                      <option value="high">ด่วน</option>
-                      <option value="med">สำคัญ</option>
-                      <option value="low">ทั่วไป</option>
                     </Select>
                   </div>
                 </div>
@@ -793,14 +812,25 @@ function AddTaskButton({subjects, onAdd}){
                   <label className="text-xs">รายละเอียด</label>
                   <Textarea value={form.detail} onChange={e=>setForm({...form, detail:e.target.value})} placeholder="โน้ตย่อย หรือ checklist คร่าวๆ" />
                 </div>
-                <div>
-                  <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
-                  <Input 
-                    type="datetime-local" 
-                    value={form.dueAt} 
-                    onChange={e=>setForm({...form, dueAt:e.target.value})}
-                    className="appearance-none"
-                  />
+                <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-4`}>
+                  {form.taskType === 'deadline' && (
+                    <div>
+                      <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
+                      <Input 
+                        type="datetime-local" 
+                        value={form.startAt} 
+                        onChange={e=>setForm({...form, startAt:e.target.value})}
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
+                    <Input 
+                      type="datetime-local" 
+                      value={form.dueAt} 
+                      onChange={e=>setForm({...form, dueAt:e.target.value})}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs">ลิงก์ที่เกี่ยวข้อง</label>
@@ -861,12 +891,12 @@ function AddTaskButton({subjects, onAdd}){
 
 function TaskItem({task, onUpdate, onDelete}){
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
-  useEffect(()=> setForm({...task, dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : '', detail: task.detail || '', link: task.link || ''}), [task])
+  const [form, setForm] = useState({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
+  useEffect(()=> setForm({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : '', detail: task.detail || '', link: task.link || ''}), [task])
 
   const [showDetailModal, setShowDetailModal] = useState(false)
   const save = ()=>{
-    const payload = {...form, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
+    const payload = {...form, startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
     onUpdate(payload)
     setEditing(false)
   }
@@ -877,15 +907,7 @@ function TaskItem({task, onUpdate, onDelete}){
     const currentIndex = statuses.indexOf(task.status);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
 
-    let newProgress = task.progress || 0;
-    if (nextStatus === 'done') {
-      newProgress = 100;
-    } else if (task.status === 'done' && nextStatus === 'todo') {
-      // When cycling from 'done' back to 'todo', reset progress.
-      newProgress = 0;
-    }
-
-    onUpdate({ ...task, status: nextStatus, progress: newProgress });
+    onUpdate({ ...task, status: nextStatus });
   };
 
   // สร้างคลาสสำหรับไล่เฉดสีตามสถานะของงาน
@@ -897,6 +919,7 @@ function TaskItem({task, onUpdate, onDelete}){
       : ''; // ไม่มีสีสำหรับ "ยังไม่ทำ"
 
   const needsTruncationButton = task.detail && task.detail.length > 150; // Heuristic for showing "View More"
+  const isEvent = task.taskType === 'event';
 
   return (
     <Card className={statusGradientClass}>
@@ -912,7 +935,6 @@ function TaskItem({task, onUpdate, onDelete}){
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="font-medium truncate">{task.title}</div>
-            {priorityBadge(task.priority)}
             {task.subjectName && <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge>}
           </div>
           {task.detail && (
@@ -923,10 +945,14 @@ function TaskItem({task, onUpdate, onDelete}){
           <div className="mt-2">
             <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
               {task.dueAt ? (
-                <>
-                  <CalendarIcon className="h-3 w-3"/> ส่ง {format(new Date(task.dueAt), "d MMM yyyy HH:mm", {locale: th})}
-                  <span>• {isPast(new Date(task.dueAt))? 'เลยกำหนดแล้ว' : timeLeftLabel(task.dueAt)}</span>
-                </>
+                isEvent ? (
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3"/> นัดหมาย: {format(new Date(task.dueAt), "d MMM yy HH:mm", {locale: th})}</span>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1"><Flag className="h-3 w-3"/> กำหนดส่ง: {format(new Date(task.dueAt), "d MMM yy HH:mm", {locale: th})}</span>
+                    <span>• {isPast(new Date(task.dueAt))? 'เลยกำหนดแล้ว' : timeLeftLabel(task.dueAt)}</span>
+                  </>
+                )
               ) : <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3"/> ไม่มีวันส่ง</span>}
               {task.link && <a href={task.link} target="_blank" className="inline-flex items-center gap-1 underline"><LinkIcon className="h-3 w-3"/> ลิงก์งาน</a>}
             </div>
@@ -942,6 +968,13 @@ function TaskItem({task, onUpdate, onDelete}){
       <AnimatePresence>
         {editing && (
           <Modal onClose={()=>setEditing(false)}>
+            <div className="px-2 mb-4">
+              <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
+              <div className="flex gap-2">
+                <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
+                <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
+              </div>
+            </div>
             <div className="text-lg font-semibold mb-2">อัปเดตงาน</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -951,16 +984,6 @@ function TaskItem({task, onUpdate, onDelete}){
                     <option value="todo">ยังไม่ทำ</option><option value="doing">กำลังทำ</option><option value="done">เสร็จแล้ว</option>
                   </Select></div>
               </div>
-              <div>
-                <label className="text-xs">ความสำคัญ</label>
-                <div className="custom-select-wrapper">
-                  <Select value={form.priority} onChange={e=>setForm({...form, priority:e.target.value})}>
-                    <option value="high">ด่วน</option>
-                    <option value="med">สำคัญ</option>
-                    <option value="low">ทั่วไป</option>
-                  </Select>
-                </div>
-              </div>
               <div className="md:col-span-2">
                 <label className="text-xs">ชื่องาน</label>
                 <Input value={form.title} onChange={e=>setForm({...form, title:e.target.value})} className="w-full" />
@@ -969,9 +992,21 @@ function TaskItem({task, onUpdate, onDelete}){
                 <label className="text-xs">รายละเอียด</label>
                 <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
               </div>
-              <div>
-                <label className="text-xs">กำหนดส่ง (ว่างได้)</label>
-                <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
+              <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-3`}>
+                {form.taskType === 'deadline' && (
+                  <div>
+                    <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
+                    <Input 
+                      type="datetime-local" 
+                      value={form.startAt||''} 
+                      onChange={e=>setForm({...form, startAt:e.target.value})}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
+                  <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
+                </div>
               </div>
               <div>
                 <label className="text-xs">ลิงก์</label>
