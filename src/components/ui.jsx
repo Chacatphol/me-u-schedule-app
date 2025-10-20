@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { DayPicker } from 'react-day-picker';
+import { Popover, Transition } from '@headlessui/react';
+import { format, setHours, setMinutes } from 'date-fns';
+import { th } from 'date-fns/locale';
 
 // Modern Smartify-like UI primitives (mobile-first, glass accents, indigo accent)
 export const Button = ({ as: Comp = 'button', className = '', children, ...props }) => (
@@ -68,6 +72,81 @@ export const Select = (props) => (
   />
 );
 
+export const DateTimePicker = ({ value, onChange, ...props }) => {
+  const selectedDate = value ? new Date(value) : null;
+
+  const handleDaySelect = (date) => {
+    if (!date) {
+      onChange(null);
+      return;
+    }
+    const newDate = new Date(date);
+    const currentHours = selectedDate ? selectedDate.getHours() : new Date().getHours();
+    const currentMinutes = selectedDate ? selectedDate.getMinutes() : 0;
+    let finalDate = setHours(newDate, currentHours);
+    finalDate = setMinutes(finalDate, currentMinutes);
+    onChange(finalDate.toISOString());
+  };
+
+  const handleTimeChange = (e) => {
+    const [hours, minutes] = e.target.value.split(':');
+    const dateToUpdate = selectedDate || new Date();
+    let finalDate = setHours(dateToUpdate, parseInt(hours, 10));
+    finalDate = setMinutes(finalDate, parseInt(minutes, 10));
+    onChange(finalDate.toISOString());
+  };
+
+  return (
+    <Popover className="relative">
+      {({ open, close }) => (
+        <>
+          <Popover.Button as={Input} {...props} readOnly value={selectedDate ? format(selectedDate, 'd MMM yyyy, HH:mm', { locale: th }) : ''} placeholder="เลือกวันและเวลา" />
+          <Transition
+            as={React.Fragment}
+            enter="transition ease-out duration-200"
+            enterFrom="opacity-0 translate-y-1"
+            enterTo="opacity-100 translate-y-0"
+            leave="transition ease-in duration-150"
+            leaveFrom="opacity-100 translate-y-0"
+            leaveTo="opacity-0 translate-y-1"
+          >
+            <Popover.Panel className="absolute z-10 mt-2 w-screen max-w-sm">
+              <div className="overflow-hidden rounded-2xl shadow-2xl border-2 border-black dark:border-white">
+                <div className="relative bg-white/90 dark:bg-black/80 backdrop-blur-xl p-2">
+                  <DayPicker
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDaySelect}
+                    locale={th}
+                    weekStartsOn={1} // Start week on Monday, consistent with Dashboard
+                    showOutsideDays
+                    classNames={{
+                      caption: 'flex justify-between items-center mb-3 px-1',
+                      caption_label: 'text-sm font-semibold',
+                      nav_button: 'h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/60 border-2 border-transparent hover:border-black dark:hover:border-white',
+                      head_row: 'grid grid-cols-7 gap-1 text-xs text-slate-500 mb-1', // Use grid for alignment and gap
+                      head_cell: 'text-center font-medium text-slate-700 dark:text-slate-300', // Make day names more prominent and centered
+                      row: 'flex w-full mt-2',
+                      cell: 'w-10 h-10 flex items-center justify-center text-sm p-0',
+                      day: 'w-full h-full flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/60',
+                      day_today: 'border-2 border-indigo-500',
+                      day_selected: 'bg-black text-white dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white',
+                      day_outside: 'text-slate-400 dark:text-slate-500',
+                    }}
+                  />
+                  <div className="border-t border-slate-200/80 dark:border-slate-700/80 p-2">
+                    <Input type="time" value={selectedDate ? format(selectedDate, 'HH:mm') : ''} onChange={handleTimeChange} />
+                  </div>
+                </div>
+              </div>
+            </Popover.Panel>
+          </Transition>
+        </>
+      )}
+    </Popover>
+  );
+};
+
 export const Card = ({ className = '', children, ...props }) => (
   <motion.div
     initial={{ opacity: 0, y: 8, scale: 0.995 }}
@@ -113,4 +192,3 @@ export const Progress = ({value=0}) => (
   </div>
 );
   
-

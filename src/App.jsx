@@ -8,7 +8,7 @@ import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircl
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
-import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
+import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress, DateTimePicker } from './components/ui.jsx';
 
 // --- Data layer ---
 const initialState = {
@@ -855,19 +855,17 @@ function AddTaskButton({subjects, onAdd}){
                   {form.taskType === 'deadline' && (
                     <div>
                       <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                      <Input 
-                        type="datetime-local" 
+                      <DateTimePicker
                         value={form.startAt} 
-                        onChange={e=>setForm({...form, startAt:e.target.value})}
+                        onChange={val=>setForm({...form, startAt:val})}
                       />
                     </div>
                   )}
                   <div>
                     <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-                    <Input 
-                      type="datetime-local" 
+                    <DateTimePicker
                       value={form.dueAt} 
-                      onChange={e=>setForm({...form, dueAt:e.target.value})}
+                      onChange={val=>setForm({...form, dueAt:val})}
                     />
                   </div>
                 </div>
@@ -1296,12 +1294,12 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
             {form.taskType === 'deadline' && (
               <div>
                 <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                <Input type="datetime-local" value={form.startAt||''} onChange={e=>setForm({...form, startAt:e.target.value})} />
+                <DateTimePicker value={form.startAt} onChange={val=>setForm({...form, startAt:val})} />
               </div>
             )}
             <div>
               <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-              <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
+              <DateTimePicker value={form.dueAt} onChange={val=>setForm({...form, dueAt:val})} />
             </div>
           </div>
           <div>
