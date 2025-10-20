@@ -11,8 +11,8 @@ export const Button = ({ as: Comp = 'button', className = '', children, ...props
     className={`inline-flex items-center justify-center gap-2 select-none
       px-4 py-3 text-sm md:text-base font-semibold rounded-2xl
       bg-gradient-to-br from-indigo-600 to-indigo-500 text-white
-      shadow-lg shadow-indigo-500/25 hover:shadow-xl active:scale-95
-      focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2
+      shadow-lg shadow-indigo-500/25 hover:shadow-xl active:scale-95 
+      focus:outline-none
       transition-all disabled:opacity-60 ${className}`}
     {...props}
   >
@@ -23,8 +23,8 @@ export const Button = ({ as: Comp = 'button', className = '', children, ...props
 export const GhostButton = ({ as: Comp = 'button', className = '', children, ...props }) => (
   <Comp
     className={`inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg
-      bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-white/10 text-slate-700 dark:text-slate-200
-      hover:bg-white/60 dark:hover:bg-slate-800/60 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-300
+      backdrop-blur-sm border border-white/10 text-slate-700
+      hover:bg-white/60 active:scale-95 focus:outline-none
       transition ${className}`}
     {...props}
   >
@@ -36,9 +36,9 @@ export const Input = React.forwardRef((props, ref) => (
   <input
     ref={ref}
     {...props}
-    className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm
-      border border-white/10 dark:border-slate-800/60 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
-      placeholder:text-slate-400 dark:placeholder:text-slate-500 transition ${props.className || ''}`}
+    className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 backdrop-blur-sm
+      border border-slate-200/30 outline-none focus:border-indigo-400
+      placeholder:text-slate-400 transition ${props.className || ''}`}
   />
 ));
 
@@ -57,8 +57,8 @@ export const Textarea = (props) => {
       ref={textareaRef}
       rows={1}
       {...props}
-      className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm
-        border border-white/10 dark:border-slate-800/60 outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none overflow-y-hidden
+      className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 backdrop-blur-sm
+        border border-white/10 outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none overflow-y-hidden
         ${props.className || ''}`}
     />
   );
@@ -67,8 +67,8 @@ export const Textarea = (props) => {
 export const Select = (props) => (
   <select
     {...props}
-    className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm
-      border border-white/10 dark:border-slate-800/60 outline-none focus:ring-2 focus:ring-indigo-400 transition ${props.className || ''}`}
+    className={`w-full px-3 py-2 text-sm md:text-base rounded-xl bg-white/60 backdrop-blur-sm
+      border border-slate-200/30 outline-none focus:border-indigo-400 transition ${props.className || ''}`}
   />
 );
 
@@ -112,7 +112,7 @@ export const DateTimePicker = ({ value, onChange, ...props }) => {
           >
             <Popover.Panel className="absolute z-10 mt-2 w-screen max-w-sm">
               <div className="overflow-hidden rounded-2xl shadow-2xl border-2 border-black dark:border-white">
-                <div className="relative bg-white/90 dark:bg-black/80 backdrop-blur-xl p-2">
+                <div className="relative bg-white/90 backdrop-blur-xl p-2">
                   <DayPicker
                     mode="single"
                     selected={selectedDate}
@@ -123,14 +123,14 @@ export const DateTimePicker = ({ value, onChange, ...props }) => {
                     classNames={{
                       caption: 'flex justify-between items-center mb-3 px-1 gap-2',
                       caption_label: 'text-sm font-semibold',
-                      nav_button: 'h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/60 border-2 border-transparent hover:border-black dark:hover:border-white',
+                      nav_button: 'h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200/60 border-2 border-transparent hover:border-black',
                       head_row: 'grid grid-cols-7 gap-1 text-xs text-slate-500 mb-1', // Use grid for alignment and gap
-                      head_cell: 'text-center font-medium text-slate-700 dark:text-slate-300', // Make day names more prominent and centered
+                      head_cell: 'text-center font-medium text-slate-700', // Make day names more prominent and centered
                       row: 'flex w-full mt-2',
                       cell: 'w-10 h-10 flex items-center justify-center text-sm p-0',
-                      day: 'w-full h-full flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/60',
+                      day: 'w-full h-full flex items-center justify-center rounded-lg hover:bg-slate-200/60',
                       day_today: 'border-2 border-indigo-500',
-                      day_selected: 'bg-black text-white dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white',
+                      day_selected: 'bg-black text-white hover:bg-black',
                       day_outside: 'text-slate-400 dark:text-slate-500',
                     }}
                     components={{
@@ -160,8 +160,8 @@ export const Card = ({ className = '', children, ...props }) => (
     initial={{ opacity: 0, y: 8, scale: 0.995 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: 0.18 }}
-    className={`bg-white/70 dark:bg-slate-900/60 backdrop-blur-sm border border-white/10 dark:border-slate-800/40
-      p-4 md:p-6 mb-3 rounded-2xl shadow-sm ${className}`}
+    className={`bg-white/70 backdrop-blur-sm border border-white/10
+      p-4 md:p-6 mb-3 rounded-2xl shadow-lg shadow-slate-300/20 ${className}`}
     {...props}
   >
     {children}
@@ -173,20 +173,20 @@ export const SectionTitle = ({children}) => (
     initial={{ opacity: 0, x: -8 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.18 }}
-    className="text-lg md:text-2xl font-semibold mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-100"
+    className="text-lg md:text-2xl font-semibold mb-4 flex items-center gap-2 text-slate-800"
   >
     {children}
   </motion.div>
 );
 
 export const Badge = ({children, className=''}) => (
-  <span className={`inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 dark:bg-slate-800/30 border border-white/5 ${className}`}>
+  <span className={`inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 border border-white/5 ${className}`}>
     {children}
   </span>
 );
 
 export const Progress = ({value=0}) => (
-  <div className="w-full h-3 bg-slate-200/60 dark:bg-slate-800/40 rounded-full overflow-hidden">
+  <div className="w-full h-3 bg-slate-200/60 rounded-full overflow-hidden">
     <motion.div
       initial={{ width: 0 }}
       animate={{ width: `${Math.min(100,Math.max(0,value))}%` }}

@@ -18,19 +18,7 @@
       radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.15), transparent 40%),
       radial-gradient(circle at 50% 100%, rgba(147, 51, 234, 0.15), transparent 40%),
       linear-gradient(to bottom right, rgb(240, 249, 255), rgb(243, 244, 255), rgb(245, 243, 255));
-  }
-
-  .dark body {
-    background: 
-      radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.15), transparent 40%),
-      radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.15), transparent 40%),
-      radial-gradient(circle at 50% 100%, rgba(147, 51, 234, 0.15), transparent 40%),
-      linear-gradient(to bottom right, rgb(2, 6, 23), rgb(3, 7, 18), rgb(9, 9, 11));
-  }
-
-  html.dark {
-    @apply text-slate-100;
-  }
+  }  
 
   /* Custom Scrollbar */
   /* Hide scrollbar but keep functionality */
@@ -55,11 +43,9 @@
     @apply fixed inset-0 z-[-1] bg-[url('data:image/svg+xml,<svg_xmlns="http://www.w3.org/2000/svg"_viewBox="0_0_32_32"_width="32"_height="32"_fill="none"><circle_fill-opacity=".05"_fill="%236366f1"_cx="16"_cy="16"_r="10"></circle></svg>')] bg-[size:40px_40px] opacity-50;
   }
 
-  /* Better focus rings for accessibility, matching the theme color */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-offset-2 ring-indigo-500 dark:ring-indigo-400 ring-offset-slate-50 dark:ring-offset-slate-950 rounded-md;
-  }
-
+  /* Better focus rings for accessibility, matching the theme color (Disabled per user request) */
+  /*
+  */
   /* Custom styled select/dropdown */
   .custom-select-wrapper {
     @apply relative;
@@ -72,10 +58,6 @@
     content: '⌄'; /* Chevron down character */
     @apply absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none;
     font-size: 1.25rem;
-  }
-  /* Style the options inside the select for dark mode */
-  .dark .custom-select-wrapper select option {
-    @apply bg-slate-800 text-slate-200;
   }
 
 }

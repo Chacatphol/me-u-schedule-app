@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay, subDays, eachDayOfInterval } from "date-fns";
+import { format, isToday, isPast, addMinutes, addHours, addDays, differenceInMinutes, differenceInHours, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, add, isSameMonth, isSameDay, subDays, eachDayOfInterval, set, setHours, setMinutes } from "date-fns";
 import { createPortal } from "react-dom";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,10 +9,12 @@ import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
 import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
+import { DayPicker } from "react-day-picker";
+import 'react-day-picker/dist/style.css';
+import './day-picker.css';
 
 // --- Data layer ---
 const initialState = {
-  theme: 'auto',
   subjects: [], // {id, name, color}
   tasks: [], // {id, subjectId, title, detail, startAt|null, dueAt|null, taskType:'deadline'|'event', link, status:'todo'|'doing'|'done', category:'เรียน'|'งาน'|'ส่วนตัว', reminders:[{type:'minutes'|'hours'|'days', amount:number}], createdAt, updatedAt}
   lastLogin: null,
@@ -31,7 +33,6 @@ function reducer(state, action){
         ...initialState,
         subjects: Array.isArray(loaded.subjects) ? loaded.subjects.filter(s => s && typeof s === 'object') : [],
         tasks: Array.isArray(loaded.tasks) ? loaded.tasks.filter(t => t && typeof t === 'object') : [],
-        theme: loaded.theme || 'auto',
         lastLogin: loaded.lastLogin || null,
         loginStreak: loaded.loginStreak || 0,
       };
@@ -42,7 +43,6 @@ function reducer(state, action){
     case 'addTask': return { ...state, tasks:[...state.tasks, action.payload] }
     case 'updateTask': return { ...state, tasks: state.tasks.map(t=>t.id===action.payload.id? {...t,...action.payload, updatedAt:Date.now()}:t) }
     case 'deleteTask': return { ...state, tasks: state.tasks.filter(t=>t.id!==action.id) }
-    case 'setTheme': return { ...state, theme: action.value }
     case 'updateLoginStreak': return { ...state, lastLogin: action.payload.lastLogin, loginStreak: action.payload.loginStreak }
     case 'reset': return initialState
     default: return state
@@ -195,14 +195,6 @@ export default function App(){
   // tick every 30s for countdown labels
   useEffect(()=>{ const t = setInterval(()=> setNowTick(x=>x+1), 30000); return ()=>clearInterval(t) },[])
 
-  // theme
-  useEffect(()=>{
-    const root = document.documentElement
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const dark = state.theme==='dark' || (state.theme==='auto' && prefersDark)
-    root.classList.toggle('dark', dark)
-  },[state.theme])
-
   // derived
   const subjectsMap = useMemo(()=> Object.fromEntries(state.subjects.map(s=>[s.id,s])),[state.subjects])
   const tasks = useMemo(()=> state.tasks.map(t=> ({...t, subjectName: subjectsMap[t.subjectId]?.name, subjectColor: subjectsMap[t.subjectId]?.color})), [state.tasks, subjectsMap])
@@ -279,13 +271,6 @@ export default function App(){
 
   return (
     <div className="min-h-screen text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 font-sans">
-      {/* Brutalist Design - Raw pattern background */}
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-          backgroundSize: '30px 30px'
-        }}></div>
-      </div>
       
   <div className="md:flex pb-16 md:pb-0">
         {/* Sidebar for Desktop - Brutalist Style */}
@@ -296,7 +281,7 @@ export default function App(){
           <nav className="flex-1 space-y-2">
             {navItems.map(({ key, label, icon: Icon }) => (
               <a key={key} href="#" onClick={(e) => { e.preventDefault(); setView(key); }}
-                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${view === key ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-md' : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300'}`}>
+                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${view === key ? 'bg-white text-indigo-600 shadow-md' : 'hover:bg-slate-200/50 text-slate-600'}`}>
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
               </a>
@@ -368,7 +353,7 @@ export default function App(){
         <div className="flex items-center justify-around">
           {navItems.map(({ key, label, icon: Icon }) => (
             <a key={key} href="#" onClick={(e) => { e.preventDefault(); setView(key); }}
-               className={`flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all ${view === key ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>
+               className={`flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all ${view === key ? 'text-indigo-600' : 'text-slate-500'}`}>
               <Icon className="h-6 w-6" />
               <span className="text-xs mt-1">{label}</span>
             </a>
@@ -503,7 +488,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
 
         <div className="space-y-3">
           {dueSoon.length > 0 ? dueSoon.map(task => (
-            <div key={task.id} className="p-3 rounded-lg bg-white/60 dark:bg-slate-800/50 flex items-start justify-between">
+            <div key={task.id} className="p-3 rounded-lg bg-white/60 flex items-start justify-between">
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{task.title}</div>
                 <div className="text-xs text-slate-500">{task.subjectName || 'ไม่มีวิชา'} • {task.dueAt ? format(new Date(task.dueAt), "d MMM HH:mm", {locale: th}) : 'ไม่ระบุเวลา'}</div>
@@ -556,9 +541,9 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                   transition-all duration-200
                   border border-slate-200/50 dark:border-slate-700/50
                   backdrop-blur-sm
-                  ${indicators.length > 0 ? 'scale-100' : 'scale-90 opacity-70'}
-                  ${isSameMonth(day, calendarCursor) 
-                    ? 'bg-white/60 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/60'
+                  ${indicators.length > 0 ? 'scale-100' : 'scale-90 opacity-60'}
+                  ${isSameMonth(day, calendarCursor)
+                    ? 'bg-white/60 hover:bg-white/80'
                     : 'opacity-40'}
                   ${isSameDay(day, new Date()) ? 'ring-2 ring-indigo-400' : ''}
                 `}
@@ -664,7 +649,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
               <div className="space-y-2">
                 {tasksByDate[format(modalDate, 'yyyy-MM-dd')].map(task => (
                   <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                       className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
+                       className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{task.title}</div>
@@ -741,8 +726,8 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
       <div className="sticky top-[76px] z-10 -mx-4 px-4 py-2 bg-slate-100/60 dark:bg-slate-950/60 backdrop-blur-xl">
         <div className="flex flex-wrap gap-2">
           <GhostButton 
-            onClick={() => setSelectedSubject(null)} 
-            className={`transition-all ${!selectedSubject ? 'bg-white/80 dark:bg-slate-800/80 shadow-lg scale-110' : ''}`}
+            onClick={() => setSelectedSubject(null)}
+            className={`transition-all ${!selectedSubject ? 'bg-indigo-500 !text-white shadow-lg' : 'bg-white/40'}`}
           >
             ทั้งหมด
           </GhostButton>
@@ -750,9 +735,8 @@ function TasksView({state, dispatch, tasks, filteredTasks, setQuery, query, sele
             <GhostButton 
               key={s.id} 
               onClick={() => setSelectedSubject(s.id)} 
-              className={`relative transition-all
-                ${selectedSubject === s.id ? 'bg-white/80 dark:bg-slate-800/80 shadow-lg scale-110' : ''}
-                ${selectedSubject === s.id ? 'after:absolute after:left-1/2 after:-bottom-6 after:w-4 after:h-6 after:bg-gradient-to-b after:from-white/80 after:to-transparent dark:after:from-slate-800/80 after:-translate-x-1/2' : ''}
+              className={`transition-all
+                ${selectedSubject === s.id ? 'bg-indigo-500 !text-white shadow-lg' : 'bg-white/40'}
               `}
             >
               <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
@@ -810,9 +794,47 @@ function AddTaskButton({subjects, onAdd}){
   })
   useEffect(()=>{ if(subjects.length && !form.subjectId) setForm(f=>({...f, subjectId: subjects[0].id})) },[subjects])
 
+  const handleDayClick = (day) => {
+    const { startAt, dueAt } = form;
+    const newDate = set(day, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+
+    if (!startAt && !dueAt) {
+      // First click, set due date
+      setForm(f => ({ ...f, dueAt: newDate.toISOString(), startAt: '' }));
+    } else if (!startAt && dueAt) {
+      // Second click, create a range
+      const dueDate = new Date(dueAt);
+      if (newDate < dueDate) {
+        setForm(f => ({ ...f, startAt: newDate.toISOString() }));
+      } else {
+        setForm(f => ({ ...f, startAt: dueAt, dueAt: newDate.toISOString() }));
+      }
+    } else {
+      // Third click or more, reset and set new due date
+      setForm(f => ({ ...f, dueAt: newDate.toISOString(), startAt: '' }));
+    }
+  };
+
+  const handleTimeChange = (field, timeValue) => {
+    if (!timeValue) return;
+    const [hours, minutes] = timeValue.split(':');
+    const dateToUpdate = form[field] ? new Date(form[field]) : new Date();
+    let finalDate = setHours(dateToUpdate, parseInt(hours, 10));
+    finalDate = setMinutes(finalDate, parseInt(minutes, 10));
+    setForm(f => ({ ...f, [field]: finalDate.toISOString() }));
+  };
+
+  const selectedRange = useMemo(() => {
+    const from = form.startAt ? new Date(form.startAt) : undefined;
+    const to = form.dueAt ? new Date(form.dueAt) : undefined;
+    if (from && !to) return { from, to: from };
+    if (!from && to) return { from: to, to: to };
+    return { from, to };
+  }, [form.startAt, form.dueAt]);
+
   const submit = ()=>{
     if(!form.title) return alert('ใส่ชื่องานก่อนนะ')
-    const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
+    const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), detail: form.detail || '', link: form.link || '' }
     onAdd(payload)
     setOpen(false)
     setForm({ subjectId: subjects[0]?.id || '', title:'', detail: '', startAt: '', dueAt: '', link: '', status:'todo', category:'เรียน', reminders:[], taskType: 'deadline' })
@@ -828,19 +850,21 @@ function AddTaskButton({subjects, onAdd}){
             <div className="px-2 mb-4">
               <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
               <div className="flex gap-2">
-                <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
-                <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
+                <GhostButton onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? 'bg-indigo-500 !text-white' : 'bg-white/40'}`}>📝 งาน</GhostButton>
+                <GhostButton onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? 'bg-indigo-500 !text-white' : 'bg-white/40'}`}>🗓️ นัดหมาย</GhostButton>
               </div>
             </div>
 
             <div className="overflow-y-auto max-h-[calc(85vh-8rem)] px-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-4">
+                <div className="md:col-span-2">
                   <label className="text-xs text-slate-500 mb-1 block">รายวิชา</label>
-                  <div className="custom-select-wrapper">
-                    <Select value={form.subjectId} onChange={e=>setForm({...form, subjectId:e.target.value})}>
-                      {subjects.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {subjects.map(s => (
+                      <GhostButton key={s.id} onClick={() => setForm({ ...form, subjectId: s.id })} className={`${form.subjectId === s.id ? 'bg-indigo-500 !text-white' : 'bg-white/40'}`}>
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} /> {s.name}
+                      </GhostButton>
+                    ))}
                   </div>
                 </div>
                 <div className="md:col-span-2">
@@ -851,30 +875,49 @@ function AddTaskButton({subjects, onAdd}){
                   <label className="text-xs">รายละเอียด</label>
                   <Textarea value={form.detail} onChange={e=>setForm({...form, detail:e.target.value})} placeholder="โน้ตย่อย หรือ checklist คร่าวๆ" />
                 </div>
-                <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-4`}>
-                  {form.taskType === 'deadline' && (
-                    <div>
-                      <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                      <Input type="datetime-local" value={form.startAt} onChange={e=>setForm({...form, startAt: e.target.value})} />
+                <div className="md:col-span-2 p-3 rounded-2xl bg-slate-100/50">
+                  <div className="flex justify-center">
+                    <DayPicker
+                      mode="range"
+                      selected={selectedRange}
+                      onDayClick={handleDayClick}
+                      locale={th}
+                      showOutsideDays
+                      weekStartsOn={1}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-slate-200/50">
+                    {form.taskType === 'deadline' && (
+                      <div>
+                        <label className="text-xs">เวลาเริ่ม</label>
+                        <Input type="time" value={form.startAt ? format(new Date(form.startAt), 'HH:mm') : ''} onChange={e => handleTimeChange('startAt', e.target.value)} />
+                      </div>
+                    )}
+                    <div className={form.taskType !== 'deadline' ? 'col-span-2' : ''}>
+                      <label className="text-xs">{form.taskType === 'deadline' ? 'เวลาสิ้นสุด' : 'เวลานัดหมาย'}</label>
+                      <Input type="time" value={form.dueAt ? format(new Date(form.dueAt), 'HH:mm') : ''} onChange={e => handleTimeChange('dueAt', e.target.value)} />
                     </div>
-                  )}
-                  <div>
-                    <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-                    <Input type="datetime-local" value={form.dueAt} onChange={e=>setForm({...form, dueAt: e.target.value})} />
+                  </div>
+                  <div className="text-xs text-center text-slate-500 mt-2">
+                    {form.startAt && form.dueAt ? 'เลือกวันเริ่มต้นและสิ้นสุดแล้ว' : form.dueAt ? 'เลือกวันสิ้นสุดแล้ว คลิกอีกครั้งเพื่อเลือกวันเริ่มต้น' : 'คลิกเพื่อเลือกวัน'}
                   </div>
                 </div>
                 <div>
                   <label className="text-xs">ลิงก์ที่เกี่ยวข้อง</label>
                   <Input value={form.link} onChange={e=>setForm({...form, link:e.target.value})} placeholder="วางลิงก์เอกสาร" />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-xs">หมวดหมู่</label>
-                  <div className="custom-select-wrapper">
-                    <Select value={form.category} onChange={e=>setForm({...form, category:e.target.value})}>
-                      <option value="เรียน">เรียน</option>
-                      <option value="งาน">งาน</option>
-                      <option value="ส่วนตัว">ส่วนตัว</option>
-                    </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'เรียน', label: 'เรียน' },
+                      { value: 'งาน', label: 'งาน' },
+                      { value: 'ส่วนตัว', label: 'ส่วนตัว' },
+                    ].map(c => (
+                      <GhostButton key={c.value} onClick={() => setForm({ ...form, category: c.value })} className={`${form.category === c.value ? 'bg-indigo-500 !text-white' : 'bg-white/40'}`}>
+                        {c.label}
+                      </GhostButton>
+                    ))}
                   </div>
                 </div>
                 <div>
@@ -885,7 +928,7 @@ function AddTaskButton({subjects, onAdd}){
                       { value: 'doing', label: 'กำลังทำ' },
                       { value: 'done', label: 'เสร็จแล้ว' },
                     ].map(s => (
-                      <GhostButton key={s.value} onClick={() => setForm({ ...form, status: s.value })} className={form.status === s.value ? 'bg-slate-50 dark:bg-slate-800' : ''}>
+                      <GhostButton key={s.value} onClick={() => setForm({ ...form, status: s.value })} className={form.status === s.value ? 'bg-indigo-500 !text-white' : 'bg-white/40'}>
                         {s.label}
                       </GhostButton>
                     ))}
@@ -901,7 +944,7 @@ function AddTaskButton({subjects, onAdd}){
                     ].map(r=> (
                       <GhostButton key={r.label} onClick={()=>{
                         setForm(f=> ({...f, reminders: f.reminders.some(x=>x.type===r.type && x.amount===r.amount) ? f.reminders.filter(x=>!(x.type===r.type && x.amount===r.amount)) : [...f.reminders, r]}))
-                      }} className={form.reminders.some(x=>x.type===r.type && x.amount===r.amount)? 'bg-slate-50 dark:bg-slate-800' : ''}>
+                      }} className={form.reminders.some(x=>x.type===r.type && x.amount===r.amount)? 'bg-indigo-500 !text-white' : 'bg-white/40'}>
                         <Bell className="h-4 w-4"/> {r.label}
                       </GhostButton>
                     ))}
@@ -918,6 +961,43 @@ function AddTaskButton({subjects, onAdd}){
       </AnimatePresence>
     </>
   )
+}
+
+function HorizontalScroller({ children }) {
+  const scrollRef = useRef(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (el) {
+      setShowLeft(el.scrollLeft > 0);
+      setShowRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1); // -1 for precision
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    el?.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el?.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [children]);
+
+  const scroll = (amount) => {
+    scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="relative flex items-center">
+      {showLeft && <button onClick={() => scroll(-150)} className="absolute left-0 z-10 h-full px-1 bg-gradient-to-r from-slate-100 dark:from-slate-900 to-transparent"><ChevronLeft className="h-5 w-5 text-slate-500"/></button>}
+      <div ref={scrollRef} className="flex gap-2 overflow-x-auto scroll-smooth py-1" style={{ scrollbarWidth: 'none', '-ms-overflow-style': 'none', 'WebkitOverflowScrolling': 'touch' }}>{children}</div>
+      {showRight && <button onClick={() => scroll(150)} className="absolute right-0 z-10 h-full px-1 bg-gradient-to-l from-slate-100 dark:from-slate-900 to-transparent"><ChevronRight className="h-5 w-5 text-slate-500"/></button>}
+    </div>
+  );
 }
 
 function TaskItem({task, onUpdate, onView, isInDeleteMode, isSelected, onToggleSelect}){
@@ -1078,12 +1158,6 @@ function ReminderPicker({value, onChange}){
 
 function Settings({state, dispatch, userId, onLogout, setView}){
   const fileRef = useRef(null)
-  const [isAddingSubject, setAddingSubject] = useState(false);
-  const nameRef = useRef(null);
-  const colorRef = useRef(null);
-  const [editingSubject, setEditingSubject] = useState(null);
-  const editNameRef = useRef(null);
-  const editColorRef = useRef(null);
 
   const addSubject = ()=>{
     const name = nameRef.current.value.trim();
@@ -1157,15 +1231,6 @@ function Settings({state, dispatch, userId, onLogout, setView}){
 
   return (
     <div className="space-y-6">
-      <Card className="sm:col-span-2">
-        <SectionTitle>ธีม</SectionTitle>
-        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
-          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'auto'})} className={state.theme==='auto'? 'bg-slate-50 dark:bg-slate-800':''}><RefreshCw className="h-4 w-4"/> อัตโนมัติ</GhostButton>
-          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'light'})} className={state.theme==='light'? 'bg-slate-50 dark:bg-slate-800':''}><Sun className="h-4 w-4"/> สว่าง</GhostButton>
-          <GhostButton onClick={()=>dispatch({type:'setTheme', value:'dark'})} className={state.theme==='dark'? 'bg-slate-50 dark:bg-slate-800':''}><Moon className="h-4 w-4"/> มืด</GhostButton>
-        </div>
-      </Card>
-      
       <Card>
         <SectionTitle>จัดการรายวิชา</SectionTitle>
         <div className="space-y-2 mb-4">
@@ -1203,7 +1268,7 @@ function Settings({state, dispatch, userId, onLogout, setView}){
         <Card className="sm:col-span-1">
           <SectionTitle>ล้างข้อมูลทั้งหมด</SectionTitle>
           <div className="flex flex-col items-start">
-            <Button className="bg-rose-600 hover:bg-rose-700 dark:text-white" onClick={handleClearData}>ล้างข้อมูล</Button>
+            <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleClearData}>ล้างข้อมูล</Button>
             <p className="text-xs text-slate-500 mt-2">การกระทำนี้จะลบข้อมูลทั้งหมดในบัญชีของคุณอย่างถาวร</p>
           </div>
         </Card>
@@ -1214,35 +1279,6 @@ function Settings({state, dispatch, userId, onLogout, setView}){
         <p className="text-sm text-slate-500 mb-3">ออกจากระบบเพื่อสลับบัญชี</p>
         <Button onClick={onLogout} className="bg-slate-600 hover:bg-slate-700"><LogOut className="h-4 w-4"/> ออกจากระบบ</Button>
       </Card>
-
-      <AnimatePresence>
-        {isAddingSubject && (
-          <Modal onClose={() => setAddingSubject(false)}>
-            <div className="text-lg font-semibold mb-4">เพิ่มรายวิชาใหม่</div>
-            <div className="space-y-3">
-              <Input placeholder="ชื่อรายวิชา/โปรเจกต์" ref={nameRef} />
-              <div className="flex items-center gap-2">
-                <Input type="color" defaultValue="#6366f1" ref={colorRef} className="w-16 h-10 p-1" />
-                <Button onClick={addSubject} className="flex-1"><Plus className="h-4 w-4" /> เพิ่ม</Button>
-              </div>
-            </div>
-          </Modal>
-        )}
-        {editingSubject && (
-          <Modal onClose={() => setEditingSubject(null)}>
-            <div className="text-lg font-semibold mb-4">แก้ไขรายวิชา</div>
-            <div className="space-y-3">
-              <Input placeholder="ชื่อรายวิชา/โปรเจกต์" defaultValue={editingSubject.name} ref={editNameRef} />
-              <div className="flex items-center gap-2">
-                <Input type="color" defaultValue={editingSubject.color} ref={editColorRef} className="w-16 h-10 p-1" />
-                <Button onClick={saveEditSubject} className="flex-1">
-                  <Check className="h-4 w-4" /> บันทึกการเปลี่ยนแปลง
-                </Button>
-              </div>
-            </div>
-          </Modal>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
@@ -1251,8 +1287,43 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
   const [isEditing, setEditing] = useState(false);
   const [form, setForm] = useState({...task, taskType: task.taskType || 'deadline', startAt: task.startAt ? format(new Date(task.startAt), "yyyy-MM-dd'T'HH:mm") : '', dueAt: task.dueAt? format(new Date(task.dueAt), "yyyy-MM-dd'T'HH:mm") : ''})
   
+  const handleDayClick = (day) => {
+    const { startAt, dueAt } = form;
+    const newDate = set(day, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+
+    if (!startAt && !dueAt) {
+      setForm(f => ({ ...f, dueAt: newDate.toISOString(), startAt: '' }));
+    } else if (!startAt && dueAt) {
+      const dueDate = new Date(dueAt);
+      if (newDate < dueDate) {
+        setForm(f => ({ ...f, startAt: newDate.toISOString() }));
+      } else {
+        setForm(f => ({ ...f, startAt: dueAt, dueAt: newDate.toISOString() }));
+      }
+    } else {
+      setForm(f => ({ ...f, dueAt: newDate.toISOString(), startAt: '' }));
+    }
+  };
+
+  const handleTimeChange = (field, timeValue) => {
+    if (!timeValue) return;
+    const [hours, minutes] = timeValue.split(':');
+    const dateToUpdate = form[field] ? new Date(form[field]) : new Date();
+    let finalDate = setHours(dateToUpdate, parseInt(hours, 10));
+    finalDate = setMinutes(finalDate, parseInt(minutes, 10));
+    setForm(f => ({ ...f, [field]: finalDate.toISOString() }));
+  };
+
+  const selectedRange = useMemo(() => {
+    const from = form.startAt ? new Date(form.startAt) : undefined;
+    const to = form.dueAt ? new Date(form.dueAt) : undefined;
+    if (from && !to) return { from, to: from };
+    if (!from && to) return { from: to, to: to };
+    return { from, to };
+  }, [form.startAt, form.dueAt]);
+
   const save = ()=>{
-    const payload = {...form, startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || ''}
+    const payload = {...form, detail: form.detail || '', link: form.link || ''}
     onUpdate(payload)
     setEditing(false)
   }
@@ -1270,8 +1341,8 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
         <div className="mb-4">
           <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
           <div className="flex gap-2">
-            <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
-            <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
+            <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}>📝 งาน</Button>
+            <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}>🗓️ นัดหมาย</Button>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1290,16 +1361,26 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
             <label className="text-xs">รายละเอียด</label>
             <Textarea value={form.detail||''} onChange={e=>setForm({...form, detail:e.target.value})} />
           </div>
-          <div className={`md:col-span-2 grid grid-cols-1 ${form.taskType === 'deadline' ? 'md:grid-cols-2' : ''} gap-3`}>
-            {form.taskType === 'deadline' && (
-              <div>
-                <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                <Input type="datetime-local" value={form.startAt||''} onChange={e=>setForm({...form, startAt:e.target.value})} />
+          <div className="md:col-span-2 p-3 rounded-2xl bg-slate-100/50">
+            <DayPicker
+              mode="range"
+              selected={selectedRange}
+              onDayClick={handleDayClick}
+              locale={th}
+              showOutsideDays
+              weekStartsOn={1}
+            />
+            <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-slate-200/50">
+              {form.taskType === 'deadline' && (
+                <div>
+                  <label className="text-xs">เวลาเริ่ม</label>
+                  <Input type="time" value={form.startAt ? format(new Date(form.startAt), 'HH:mm') : ''} onChange={e => handleTimeChange('startAt', e.target.value)} />
+                </div>
+              )}
+              <div className={form.taskType !== 'deadline' ? 'col-span-2' : ''}>
+                <label className="text-xs">{form.taskType === 'deadline' ? 'เวลาสิ้นสุด' : 'เวลานัดหมาย'}</label>
+                <Input type="time" value={form.dueAt ? format(new Date(form.dueAt), 'HH:mm') : ''} onChange={e => handleTimeChange('dueAt', e.target.value)} />
               </div>
-            )}
-            <div>
-              <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-              <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
             </div>
           </div>
           <div>
@@ -1353,7 +1434,7 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
           </div>
           <div>
             <label className="text-xs text-slate-500">วิชา</label>
-            <div>{task.subjectName ? <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor}}/> {task.subjectName}</Badge> : 'ไม่มี'}</div>
+            <div>{task.subjectName ? <Badge className="border-slate-300 text-slate-500"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{background:task.subjectColor || '#94a3b8'}}/> {task.subjectName}</Badge> : 'ไม่มี'}</div>
           </div>
         </div>
       </div>
@@ -1392,7 +1473,8 @@ function HistoryView({ tasks, dispatch }) {
             if (newSelected.has(task.id)) newSelected.delete(task.id);
             else newSelected.add(task.id);
             setSelectedTasks(newSelected);
-          }} className={`cursor-pointer transition-opacity opacity-70 hover:opacity-100 ${selectedTasks.has(task.id) ? 'ring-2 ring-rose-500' : ''}`}>
+          }} className={`cursor-pointer transition-opacity opacity-70 hover:opacity-100 ${selectedTasks.has(task.id) ? 'ring-2 ring-rose-500' : ''}`}
+          >
             <div className="flex justify-between">
               <div>
                 <div className="font-medium">{task.title}</div>
@@ -1447,7 +1529,7 @@ function Modal({children, onClose}){
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/45 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
         onClick={onClose}
       />
 
