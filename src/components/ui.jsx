@@ -121,7 +121,7 @@ export const DateTimePicker = ({ value, onChange, ...props }) => {
                     weekStartsOn={1} // Start week on Monday, consistent with Dashboard
                     showOutsideDays
                     classNames={{
-                      caption: 'flex justify-between items-center mb-3 px-1',
+                      caption: 'flex justify-between items-center mb-3 px-1 gap-2',
                       caption_label: 'text-sm font-semibold',
                       nav_button: 'h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/60 border-2 border-transparent hover:border-black dark:hover:border-white',
                       head_row: 'grid grid-cols-7 gap-1 text-xs text-slate-500 mb-1', // Use grid for alignment and gap
@@ -133,10 +133,18 @@ export const DateTimePicker = ({ value, onChange, ...props }) => {
                       day_selected: 'bg-black text-white dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white',
                       day_outside: 'text-slate-400 dark:text-slate-500',
                     }}
+                    components={{
+                      Caption: (props) => {
+                        const { ...rest } = props;
+                        return (
+                          <div className="flex justify-between items-center mb-3 px-1">
+                            <DayPicker.Caption {...rest} />
+                            <Input type="time" className="w-28 py-1" value={selectedDate ? format(selectedDate, 'HH:mm') : ''} onChange={handleTimeChange} />
+                          </div>
+                        );
+                      }
+                    }}
                   />
-                  <div className="border-t border-slate-200/80 dark:border-slate-700/80 p-2">
-                    <Input type="time" value={selectedDate ? format(selectedDate, 'HH:mm') : ''} onChange={handleTimeChange} />
-                  </div>
                 </div>
               </div>
             </Popover.Panel>

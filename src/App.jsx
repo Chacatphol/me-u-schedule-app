@@ -8,7 +8,7 @@ import { Plus, Calendar as CalendarIcon, Bell, Trash2, Pencil, Check, CheckCircl
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { db, auth } from "./firebase"; // Import auth
-import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress, DateTimePicker } from './components/ui.jsx';
+import { Button, GhostButton, Input, Textarea, Select, Card, SectionTitle, Badge, Progress } from './components/ui.jsx';
 
 // --- Data layer ---
 const initialState = {
@@ -815,7 +815,7 @@ function AddTaskButton({subjects, onAdd}){
     const payload = { ...form, id:uid(), createdAt:Date.now(), updatedAt:Date.now(), startAt: form.startAt ? new Date(form.startAt).toISOString() : null, dueAt: form.dueAt? new Date(form.dueAt).toISOString(): null, detail: form.detail || '', link: form.link || '' }
     onAdd(payload)
     setOpen(false)
-    setForm(f=>({...f, title:'', detail:'', startAt: '', dueAt:'', link:'', status:'todo', reminders:[], taskType: 'deadline'}))
+    setForm({ subjectId: subjects[0]?.id || '', title:'', detail: '', startAt: '', dueAt: '', link: '', status:'todo', category:'เรียน', reminders:[], taskType: 'deadline' })
   }
 
   return (
@@ -855,18 +855,12 @@ function AddTaskButton({subjects, onAdd}){
                   {form.taskType === 'deadline' && (
                     <div>
                       <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                      <DateTimePicker
-                        value={form.startAt} 
-                        onChange={val=>setForm({...form, startAt:val})}
-                      />
+                      <Input type="datetime-local" value={form.startAt} onChange={e=>setForm({...form, startAt: e.target.value})} />
                     </div>
                   )}
                   <div>
                     <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-                    <DateTimePicker
-                      value={form.dueAt} 
-                      onChange={val=>setForm({...form, dueAt:val})}
-                    />
+                    <Input type="datetime-local" value={form.dueAt} onChange={e=>setForm({...form, dueAt: e.target.value})} />
                   </div>
                 </div>
                 <div>
@@ -1266,15 +1260,21 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
   if (isEditing) {
     return (
       <>
-        <div className="px-2 mb-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-lg font-semibold">อัปเดตงาน</div>
+          <div className="flex gap-2">
+            <GhostButton onClick={()=>setEditing(false)}>ยกเลิก</GhostButton>
+            <Button onClick={save}><Check className="h-4 w-4"/> บันทึก</Button>
+          </div>
+        </div>
+        <div className="mb-4">
           <label className="text-xs text-slate-500 mb-1 block">ประเภท</label>
           <div className="flex gap-2">
             <Button onClick={() => setForm({...form, taskType: 'deadline'})} className={`flex-1 ${form.taskType === 'deadline' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>📝 งาน</Button>
             <Button onClick={() => setForm({...form, taskType: 'event'})} className={`flex-1 ${form.taskType === 'event' ? '' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>🗓️ นัดหมาย</Button>
           </div>
         </div>
-        <div className="text-lg font-semibold mb-2">อัปเดตงาน</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs">สถานะ</label>
             <div className="custom-select-wrapper">
@@ -1294,12 +1294,12 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
             {form.taskType === 'deadline' && (
               <div>
                 <label className="text-xs">วันที่เริ่มทำงาน (ว่างได้)</label>
-                <DateTimePicker value={form.startAt} onChange={val=>setForm({...form, startAt:val})} />
+                <Input type="datetime-local" value={form.startAt||''} onChange={e=>setForm({...form, startAt:e.target.value})} />
               </div>
             )}
             <div>
               <label className="text-xs">{form.taskType === 'deadline' ? 'กำหนดส่ง (วันสุดท้าย)' : 'วันที่นัดหมาย'}</label>
-              <DateTimePicker value={form.dueAt} onChange={val=>setForm({...form, dueAt:val})} />
+              <Input type="datetime-local" value={form.dueAt||''} onChange={e=>setForm({...form, dueAt:e.target.value})} className="w-full" />
             </div>
           </div>
           <div>
@@ -1310,10 +1310,6 @@ function TaskDetailView({ task, onUpdate, onClose, subjects }) {
             <label className="text-xs">เตือนก่อน</label>
             <ReminderPicker value={form.reminders||[]} onChange={(reminders)=> setForm({...form, reminders})} />
           </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <GhostButton onClick={()=>setEditing(false)}>ยกเลิก</GhostButton>
-          <Button onClick={save}><Check className="h-4 w-4"/> บันทึก</Button>
         </div>
       </>
     );
