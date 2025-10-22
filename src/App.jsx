@@ -431,7 +431,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
     const allDayTasks = dayTasks.filter(t => !t.dueAt);
     const workableTasks = tasks.filter(t => 
         t.taskType === 'deadline' && 
-        t.startAt && t.dueAt && 
+        t.startAt && t.dueAt &&
         isSameDay(scheduleDate, new Date(t.startAt)) === false &&
         isSameDay(scheduleDate, new Date(t.dueAt)) === false &&
         scheduleDate > new Date(t.startAt) && scheduleDate < new Date(t.dueAt)
@@ -600,10 +600,12 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                 <div key={`free-${index}`} className="flex items-center gap-4 h-8">
                   <div className="text-xs text-slate-400 w-12 text-right"></div>
                   <div className="flex-1 flex items-center">
-                    <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 relative">
-                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-100 dark:bg-slate-900 px-2 text-xs text-slate-400">
-                        ว่าง {formatFreeTime(item.duration)}
-                      </div>
+                      <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 relative h-0">
+                        {item.duration > 30 && (
+                          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-100 dark:bg-slate-900 px-2 text-xs text-slate-400">
+                            ว่าง {formatFreeTime(item.duration)}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -624,8 +626,9 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                 <div key="workable-day" className="mb-2 p-3 rounded-lg bg-slate-100/80 dark:bg-slate-800/80">
                   <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">มีงานที่รอทำอยู่ ทำดีไหมน่า 😉</div>
                   {item.tasks.map(t => (
-                    <div key={t.id} className="text-sm text-slate-500 dark:text-slate-400">
+                    <div key={t.id} className={`text-sm text-slate-500 dark:text-slate-400 ${t.status === 'done' ? 'line-through opacity-60' : ''}`}>
                       - {t.title} <span className="text-xs">({t.subjectName})</span>
+                      {t.status === 'done' && <span className="text-xs text-emerald-500 ml-1">(เสร็จแล้ว)</span>}
                     </div>
                   ))}
                 </div>
@@ -645,24 +648,62 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             <div className="text-lg font-semibold mb-4">
               งานวันที่ {format(modalDate, 'd MMMM yyyy', {locale: th})}
             </div>
-            {tasksByDate[format(modalDate, 'yyyy-MM-dd')]?.length > 0 ? (
-              <div className="space-y-2">
-                {tasksByDate[format(modalDate, 'yyyy-MM-dd')].map(task => (
-                  <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                       className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-xs text-slate-500">{task.subjectName}</div>
-                      </div>
-                      <div className="flex gap-2">{statusBadge(task.status)}</div>
+            {(() => {
+              const dayTasks = tasksByDate[format(modalDate, 'yyyy-MM-dd')] || [];
+              const activeTasks = dayTasks.filter(t => t.status !== 'done');
+              const completedTasks = dayTasks.filter(t => t.status === 'done');
+              const workableTasks = tasks.filter(t => 
+                t.taskType === 'deadline' && 
+                t.startAt && t.dueAt &&
+                !isSameDay(modalDate, new Date(t.startAt)) &&
+                !isSameDay(modalDate, new Date(t.dueAt)) &&
+                modalDate > new Date(t.startAt) && modalDate < new Date(t.dueAt)
+              );
+
+              if (dayTasks.length === 0 && workableTasks.length === 0) {
+                return <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>;
+              }
+
+              return (
+                <div className="space-y-4">
+                  {activeTasks.length > 0 && (
+                    <div className="space-y-2">
+                      {activeTasks.map(task => (
+                        <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                             className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div><div className="font-medium">{task.title}</div><div className="text-xs text-slate-500">{task.subjectName}</div></div>
+                            <div className="flex gap-2">{statusBadge(task.status)}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>
-            )}
+                  )}
+                  {workableTasks.length > 0 && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-500 mt-4 pt-4 border-t border-slate-200/80">งานที่ทำได้ในวันนี้</div>
+                      <div className="space-y-2 mt-2">
+                        {workableTasks.map(task => (
+                          <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
+                               className={`p-3 rounded-lg bg-slate-50/80 hover:bg-slate-100/80 cursor-pointer transition-colors ${task.status === 'done' ? 'opacity-70' : ''}`}>
+                            <div className={`font-medium ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</div>
+                            <div className="text-xs text-slate-500">{task.subjectName}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {completedTasks.length > 0 && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-500 mt-4 pt-4 border-t border-slate-200/80">งานที่เสร็จแล้ว</div>
+                      <div className="space-y-2 mt-2">
+                        {completedTasks.map(task => (<div key={task.id} className="p-3 rounded-lg bg-slate-50/50 opacity-70"><div className="font-medium line-through">{task.title}</div><div className="text-xs text-slate-500">{task.subjectName}</div></div>))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </Modal>
         )}
       </AnimatePresence>

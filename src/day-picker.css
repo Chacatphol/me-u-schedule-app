@@ -18,7 +18,7 @@
   --rdp-background-color: var(--rdp-background-color-dark) !important;
 }
 
-.rdp-day_selected, .rdp-day_selected:focus, .rdp-day_selected:focus-visible {
+.rdp-day_selected, .rdp-day_selected:focus, .rdp-day_selected:focus-visible, .rdp-day_selected:active {
   color: #ffffff !important;
   background-color: var(--rdp-accent-color) !important; 
   border-radius: 0.8rem !important; /* เพิ่มความโค้งมนให้กับวันที่ถูกเลือก */
