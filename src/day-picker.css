@@ -2,12 +2,12 @@
 
 /* We use !important here to safely override the library's default styles without breaking its structure. */
 .rdp {
-  --rdp-cell-size: 36px; /* Controls the size of the day cells */
+  --rdp-cell-size: 36px; /* Controls the size of the day cells */ 
   --rdp-accent-color: #4f46e5 !important; /* Indigo-600 for selected days */
-  --rdp-background-color: #4f46e520 !important; /* Transparent Indigo for range */
+  --rdp-background-color: #4f46e520 !important; /* Transparent Indigo for range */ 
   --rdp-accent-color-dark: #3b82f6 !important; /* Blue-500 for dark mode selected */
   --rdp-background-color-dark: #3b82f640 !important; /* Transparent Blue for range (dark) */
-  margin: 0 !important;
+  margin: 0 !important; 
 }
 
 .dark .rdp {
@@ -17,7 +17,7 @@
 
 .rdp-day_selected, .rdp-day_selected:focus, .rdp-day_selected:focus-visible {
   color: #ffffff !important;
-  background-color: var(--rdp-accent-color) !important;
+  background-color: var(--rdp-accent-color) !important; 
   border-radius: 0.5rem !important; /* เพิ่มความโค้งมนให้กับวันที่ถูกเลือก */
 }
 
@@ -29,7 +29,7 @@
 
 .rdp-day_range_middle {
   background-color: transparent !important; /* Use transparent background for the cell */
-  background-image: linear-gradient(to right, var(--rdp-background-color), var(--rdp-background-color));
+  background-image: linear-gradient(to right, var(--rdp-background-color), var(--rdp-background-color)); 
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 70%; /* Make the bar thinner (70% of cell height) */
@@ -57,7 +57,8 @@
 
 /* Fix for focused day text color on light theme */
 .rdp-day:focus-visible:not(.rdp-day_selected) {
-  color: inherit !important;
+  color: inherit !important; /* Keep original text color on focus */
+  outline: none !important; /* Remove focus outline on mobile */
 }
 
 /* Fix for selected day background color on focus */
@@ -68,7 +69,7 @@
 /* Make the calendar responsive for smaller screens (e.g., mobile phones) */
 @media (max-width: 640px) {
   .rdp {
-    --rdp-cell-size: 32px; /* Reduce cell size */
-    font-size: 0.875rem; /* Reduce overall font size */
+    --rdp-cell-size: 30px; /* Reduce cell size further for mobile */
+    font-size: 0.8rem; /* Reduce overall font size further for mobile */
   }
 }
