@@ -15,14 +15,16 @@
   --rdp-background-color: var(--rdp-background-color-dark) !important;
 }
 
-.rdp-day_selected, .rdp-day_selected:focus-visible {
+.rdp-day_selected, .rdp-day_selected:focus, .rdp-day_selected:focus-visible {
   color: #ffffff !important;
   background-color: var(--rdp-accent-color) !important;
+  border-radius: 0.5rem !important; /* เพิ่มความโค้งมนให้กับวันที่ถูกเลือก */
 }
 
 .rdp-day_today {
   font-weight: bold;
   color: var(--rdp-accent-color) !important;
+  border-radius: 0.5rem !important; /* เพิ่มความโค้งมนให้กับวันที่ปัจจุบัน */
 }
 
 .rdp-day_range_middle {
@@ -51,4 +53,22 @@
 
 .rdp-nav_button {
   border-radius: 0.5rem !important;
+}
+
+/* Fix for focused day text color on light theme */
+.rdp-day:focus-visible:not(.rdp-day_selected) {
+  color: inherit !important;
+}
+
+/* Fix for selected day background color on focus */
+.rdp-day_selected:focus-visible {
+  background-color: var(--rdp-accent-color) !important;
+}
+
+/* Make the calendar responsive for smaller screens (e.g., mobile phones) */
+@media (max-width: 640px) {
+  .rdp {
+    --rdp-cell-size: 32px; /* Reduce cell size */
+    font-size: 0.875rem; /* Reduce overall font size */
+  }
 }
