@@ -258,7 +258,7 @@ export default function App(){
   useEffect(()=>{ tasks.forEach(scheduleReminder) }, [tasks])
 
   if (loadingAuth) {
-    return <div className="h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">กำลังโหลด...</div>;
+    return <div className="h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">รอสักครู่นะงับ...</div>;
   }
 
   if (!user) {
@@ -334,7 +334,7 @@ export default function App(){
           
           {deleteMode ? (
             <Button onClick={() => {
-              if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedTasksForDeletion.size} งานที่เลือก?`)) {
+              if (confirm(`ต้องการลบจริงหรอ ${selectedTasksForDeletion.size} งานที่เลือก?`)) {
                 selectedTasksForDeletion.forEach(id => dispatch({ type: 'deleteTask', id }));
                 setSelectedTasksForDeletion(new Set());
                 setDeleteMode(false);
@@ -431,7 +431,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
     const allDayTasks = dayTasks.filter(t => !t.dueAt);
     const workableTasks = tasks.filter(t => 
         t.taskType === 'deadline' && 
-        t.startAt && t.dueAt &&
+        t.startAt && t.dueAt && 
         isSameDay(scheduleDate, new Date(t.startAt)) === false &&
         isSameDay(scheduleDate, new Date(t.dueAt)) === false &&
         scheduleDate > new Date(t.startAt) && scheduleDate < new Date(t.dueAt)
@@ -543,7 +543,9 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                   backdrop-blur-sm
                   ${indicators.length > 0 ? 'scale-100' : 'scale-90 opacity-60'}
                   ${isSameMonth(day, calendarCursor)
-                    ? 'bg-white/60 hover:bg-white/80'
+                    ? `bg-white/60 ${
+                        !modalDate || !isSameDay(day, modalDate) ? 'hover:bg-white/80' : ''
+                      }`
                     : 'opacity-40'}
                   ${isSameDay(day, new Date()) ? 'ring-2 ring-indigo-400' : ''}
                 `}
@@ -565,7 +567,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
       {/* Day Schedule (bottom column) */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <SectionTitle><TimerReset className="h-4 w-4"/> ตารางงานวันนี้</SectionTitle>
+          <SectionTitle><TimerReset className="h-4 w-4"/> งานวันนี้</SectionTitle>
           <div className="flex items-center gap-2">
             <GhostButton onClick={() => setScheduleDate(subDays(scheduleDate, 1))}>
               <ChevronLeft className="h-4 w-4"/>
@@ -597,17 +599,14 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             }
             if (item.type === 'free') {
               return (
-                <div key={`free-${index}`} className="flex items-center gap-4 h-8">
-                  <div className="text-xs text-slate-400 w-12 text-right"></div>
-                  <div className="flex-1 flex items-center">
-                      <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 relative h-0">
-                        {item.duration > 30 && (
-                          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-100 dark:bg-slate-900 px-2 text-xs text-slate-400">
-                            ว่าง {formatFreeTime(item.duration)}
-                          </div>
-                        )}
+                <div key={`free-${index}`} className="relative flex items-center h-8">
+                  {/* This div is now just a placeholder for height */}
+                  {item.duration > 30 && (
+                    <div className="absolute left-0 right-0 flex items-center justify-center">
+                      <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 absolute"></div>
+                      <span className="bg-slate-100 dark:bg-slate-900 px-2 text-xs text-slate-400 relative z-10">ว่าง {formatFreeTime(item.duration)}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             }
@@ -624,11 +623,10 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             if (item.type === 'workable') {
               return (
                 <div key="workable-day" className="mb-2 p-3 rounded-lg bg-slate-100/80 dark:bg-slate-800/80">
-                  <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">มีงานที่รอทำอยู่ ทำดีไหมน่า 😉</div>
+                  <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">มีงานที่รอทำอยู่ ทำดีไหมน่าาา 😉</div>
                   {item.tasks.map(t => (
-                    <div key={t.id} className={`text-sm text-slate-500 dark:text-slate-400 ${t.status === 'done' ? 'line-through opacity-60' : ''}`}>
+                    <div key={t.id} className="text-sm text-slate-500 dark:text-slate-400">
                       - {t.title} <span className="text-xs">({t.subjectName})</span>
-                      {t.status === 'done' && <span className="text-xs text-emerald-500 ml-1">(เสร็จแล้ว)</span>}
                     </div>
                   ))}
                 </div>
@@ -636,7 +634,7 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
             }
             return null;
           }) : (
-            <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>
+            <div className="text-slate-500 text-center py-8">บ่มีงานจ้า วันนี้นอนได้</div>
           )}
         </div>
       </Card>
@@ -652,16 +650,9 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
               const dayTasks = tasksByDate[format(modalDate, 'yyyy-MM-dd')] || [];
               const activeTasks = dayTasks.filter(t => t.status !== 'done');
               const completedTasks = dayTasks.filter(t => t.status === 'done');
-              const workableTasks = tasks.filter(t => 
-                t.taskType === 'deadline' && 
-                t.startAt && t.dueAt &&
-                !isSameDay(modalDate, new Date(t.startAt)) &&
-                !isSameDay(modalDate, new Date(t.dueAt)) &&
-                modalDate > new Date(t.startAt) && modalDate < new Date(t.dueAt)
-              );
 
-              if (dayTasks.length === 0 && workableTasks.length === 0) {
-                return <div className="text-slate-500 text-center py-8">ไม่มีงานในวันนี้</div>;
+              if (dayTasks.length === 0) {
+                return <div className="text-slate-500 text-center py-8">บ่มีงานจ้า วันนี้นอนได้</div>;
               }
 
               return (
@@ -677,20 +668,6 @@ function Dashboard({state, tasks, dueSoon, progressToday, lazyScore, setView, se
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                  {workableTasks.length > 0 && (
-                    <div>
-                      <div className="text-sm font-semibold text-slate-500 mt-4 pt-4 border-t border-slate-200/80">งานที่ทำได้ในวันนี้</div>
-                      <div className="space-y-2 mt-2">
-                        {workableTasks.map(task => (
-                          <div key={task.id} onClick={() => { setView('tasks'); setSelectedSubject(null); }}
-                               className={`p-3 rounded-lg bg-slate-50/80 hover:bg-slate-100/80 cursor-pointer transition-colors ${task.status === 'done' ? 'opacity-70' : ''}`}>
-                            <div className={`font-medium ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</div>
-                            <div className="text-xs text-slate-500">{task.subjectName}</div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
                   {completedTasks.length > 0 && (
