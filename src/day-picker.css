@@ -3,7 +3,7 @@
 /* --- การตั้งค่าหลักของปฏิทิน --- */
 .rdp {
   /* ตัวแปรสำหรับปรับแต่งสีและขนาดต่างๆ */
-  --rdp-cell-size: 30px; /* ขนาดของแต่ละช่องวันที่ */ 
+  --rdp-cell-size: 36px; /* ขนาดของแต่ละช่องวันที่ */
   --rdp-accent-color: #4f46e5 !important; /* สีหลัก (ม่วง) สำหรับวันที่ถูกเลือก */
   --rdp-background-color: #4f46e520 !important; /* สีพื้นหลังสำหรับช่วงวันที่ (โปร่งใส) */ 
   --rdp-accent-color-dark: #3b82f6 !important; /* สีหลักสำหรับโหมดมืด */
@@ -13,7 +13,7 @@
   /* การจัดวางและขนาด */
   margin: 0 auto !important; /* จัดปฏิทินให้อยู่ตรงกลาง */
   max-width: 350px; /* กำหนดความกว้างสูงสุด ไม่ให้ใหญ่เกินไปบนจอใหญ่ */
-  width: 70%; /* ทำให้ปฏิทินปรับขนาดตามกรอบที่ครอบอยู่ */
+  width: 100%; /* ทำให้ปฏิทินปรับขนาดตามกรอบที่ครอบอยู่ */
 }
 
 /* --- สไตล์สำหรับโหมดมืด (Dark Mode) --- */
@@ -24,7 +24,7 @@
 
 /* --- สไตล์ของวันที่ถูกเลือก --- */
 .rdp-day_selected, .rdp-day_selected:focus, .rdp-day_selected:focus-visible, .rdp-day_selected:active {
-  color: #ffb950 !important; /* ตัวอักษรสีขาว */
+  color: #ffffff !important; /* ตัวอักษรสีขาว */
   background-color: var(--rdp-accent-color) !important; /* พื้นหลังสีม่วง */
   border-radius: 0.8rem !important; /* ทำให้มุมโค้งมน */
   outline: none !important; /* ลบเส้นกรอบเมื่อ focus */
@@ -46,9 +46,10 @@
   background-position: center; /* จัดแถบสีให้อยู่กลางช่อง */
   background-size: 100% 70%; /* ทำให้แถบสีบางลง (สูง 70% ของช่อง) */
   color: inherit !important; /* ใช้สีตัวอักษรปกติ */
-  border-radius: 00.8rem !important; /* ทำให้เป็นสี่เหลี่ยม ไม่มีมุมโค้ง */
+  border-radius: 0 !important; /* ทำให้เป็นสี่เหลี่ยม ไม่มีมุมโค้ง */
 }
 
+/* --- สไตล์ของวัน "เริ่มต้น" และ "สิ้นสุด" ของช่วง --- */
 .rdp-day_range_start {
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
@@ -69,16 +70,22 @@
   border-radius: 0.5rem !important; /* ทำให้มุมโค้งมน */
 }
 
-/* --- แก้ปัญหา Focus: ทำให้สีตัวอักษรไม่เปลี่ยนเป็นสีขาวเมื่อ focus วันที่ยังไม่ได้เลือก --- */
+/* --- แก้ปัญหา Focus: เมื่อ focus วันที่ "ยังไม่ได้เลือก" --- */
 .rdp-day:focus-visible:not(.rdp-day_selected) {
-  color: #ffb950 !important; /* คงสีตัวอักษรเดิมไว้ */
+  color: inherit !important; /* คงสีตัวอักษรเดิมไว้ (ไม่เปลี่ยนเป็นสีอื่น) */
   outline: none !important; /* ลบเส้นกรอบ focus บนมือถือ */
+  background-color: rgba(0, 0, 0, 0.05) !important; /* เพิ่มพื้นหลังสีเทาจางๆ เมื่อ focus */
+}
+
+/* --- แก้ปัญหา Focus: เมื่อ focus วันที่ "ถูกเลือกแล้ว" --- */
+.rdp-day_selected:focus-visible {
+  background-color: var(--rdp-selected-focus-color) !important; /* ใช้สีม่วงอ่อนที่กำหนดไว้ */
 }
 
 /* --- ทำให้ปฏิทินปรับขนาดตามหน้าจอ (Responsive) สำหรับมือถือ --- */
 @media (max-width: 640px) {
   .rdp {
-    --rdp-cell-size: 10px; /* ลดขนาดช่องวันที่ให้เล็กลง */
-    font-size: 0.1rem; /* ปรับขนาดตัวอักษรให้เหมาะสมกับมือถือ (12px) */
+    --rdp-cell-size: 30px; /* ลดขนาดช่องวันที่ให้เล็กลงสำหรับมือถือ */
+    font-size: 0.8rem; /* ปรับขนาดตัวอักษรให้เหมาะสมกับมือถือ */
   }
 }
