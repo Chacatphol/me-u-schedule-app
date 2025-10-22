@@ -7,7 +7,8 @@
   --rdp-background-color: #4f46e520 !important; /* Transparent Indigo for range */ 
   --rdp-accent-color-dark: #3b82f6 !important; /* Blue-500 for dark mode selected */
   --rdp-background-color-dark: #3b82f640 !important; /* Transparent Blue for range (dark) */
-  margin: 0 !important; 
+  margin: 0 auto !important; /* Center the calendar and override default margin */
+  max-width: 350px; /* Set a maximum width for larger screens */
 }
 
 .dark .rdp {
@@ -19,6 +20,8 @@
   color: #ffffff !important;
   background-color: var(--rdp-accent-color) !important; 
   border-radius: 0.5rem !important; /* เพิ่มความโค้งมนให้กับวันที่ถูกเลือก */
+  outline: none !important; /* Remove focus outline */
+  box-shadow: none !important; /* Remove focus box-shadow */
 }
 
 .rdp-day_today {
