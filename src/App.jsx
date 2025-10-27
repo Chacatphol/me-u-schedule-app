@@ -321,7 +321,7 @@ export default function App(){
 
       {/* Floating Action Buttons for Tasks View */}
       {view === 'tasks' && (
-        <div className="fixed left-4 right-4 bottom-20 md:bottom-6 flex items-center justify-between gap-3 z-30">
+        <div className="fixed left-4 right-4 bottom-20 md:bottom-6 flex items-center justify-between gap-3 z-40">
           {deleteMode ? (
             <Button onClick={() => { setDeleteMode(false); setSelectedTasksForDeletion(new Set()); }} className="bg-slate-500 hover:bg-slate-600">
               <X className="h-4 w-4"/> ยกเลิก
