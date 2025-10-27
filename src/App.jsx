@@ -1175,7 +1175,14 @@ function ReminderPicker({value, onChange}){
 
 
 function Settings({state, dispatch, userId, onLogout, setView}){
-  const fileRef = useRef(null)
+  const fileRef = useRef(null);
+  const [addingSubject, setAddingSubject] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(null); // This will hold the subject object being edited
+
+  const nameRef = useRef(null);
+  const colorRef = useRef(null);
+  const editNameRef = useRef(null);
+  const editColorRef = useRef(null);
 
   const addSubject = ()=>{
     const name = nameRef.current.value.trim();
