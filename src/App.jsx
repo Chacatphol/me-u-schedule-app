@@ -1266,6 +1266,59 @@ function Settings({state, dispatch, userId, onLogout, setView}){
         <Button onClick={() => setAddingSubject(true)}><Plus className="h-4 w-4"/> เพิ่มรายวิชาใหม่</Button>
       </Card>
 
+      <AnimatePresence>
+        {addingSubject && (
+          <Modal onClose={() => setAddingSubject(false)}>
+            <div className="text-lg font-semibold mb-4">เพิ่มรายวิชาใหม่</div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs">ชื่อรายวิชา</label>
+                <Input ref={nameRef} placeholder="เช่น GEN001" autoFocus />
+              </div>
+              <div>
+                <label className="text-xs">เลือกสี</label>
+                <Input ref={colorRef} type="color" defaultValue="#6366f1" className="w-full h-12 p-1" />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <GhostButton onClick={() => setAddingSubject(false)}>ยกเลิก</GhostButton>
+              <Button onClick={addSubject}><Check className="h-4 w-4"/> บันทึก</Button>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingSubject && (
+          <Modal onClose={() => setEditingSubject(null)}>
+            <div className="text-lg font-semibold mb-4">แก้ไขรายวิชา</div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs">ชื่อรายวิชา</label>
+                <Input
+                  ref={editNameRef}
+                  defaultValue={editingSubject.name}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs">เลือกสี</label>
+                <Input
+                  ref={editColorRef}
+                  type="color"
+                  defaultValue={editingSubject.color}
+                  className="w-full h-12 p-1"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <GhostButton onClick={() => setEditingSubject(null)}>ยกเลิก</GhostButton>
+              <Button onClick={saveEditSubject}><Check className="h-4 w-4"/> บันทึก</Button>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+
       <Card>
         <SectionTitle><Archive className="h-4 w-4"/> ประวัติงาน</SectionTitle>
         <p className="text-sm text-slate-500 mb-3">ดูงานที่เสร็จสิ้นไปแล้ว</p>
